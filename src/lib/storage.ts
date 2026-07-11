@@ -39,7 +39,11 @@ export function readIndex(): ChatIndexEntry[] {
   try {
     const raw = localStorage.getItem(INDEX_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as ChatIndexEntry[];
+    const entries = JSON.parse(raw) as ChatIndexEntry[];
+    for (const entry of entries) {
+      if (!Array.isArray(entry.aiPersonas)) entry.aiPersonas = [];
+    }
+    return entries;
   } catch {
     return [];
   }
@@ -77,7 +81,9 @@ export function loadChat(id: string): ChatData | null {
   try {
     const raw = localStorage.getItem(CHAT_PREFIX + id);
     if (!raw) return null;
-    return decompressJSON<ChatData>(raw);
+    const chat = decompressJSON<ChatData>(raw);
+    if (!Array.isArray(chat.aiPersonas)) chat.aiPersonas = [];
+    return chat;
   } catch {
     return null;
   }

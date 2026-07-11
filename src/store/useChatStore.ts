@@ -1,7 +1,19 @@
 import { create } from "zustand";
-import type { ChatData, ChatIndexEntry, RawMessage, Reaction, BubbleTheme } from "@/types";
+import type {
+  ChatData,
+  ChatIndexEntry,
+  RawMessage,
+  Reaction,
+  BubbleTheme,
+} from "@/types";
 import { parseChatFile } from "@/lib/parseChat";
-import { readIndex, saveChat, loadChat, removeChat, clearAllStorage as clearStorageLib } from "@/lib/storage";
+import {
+  readIndex,
+  saveChat,
+  loadChat,
+  removeChat,
+  clearAllStorage as clearStorageLib,
+} from "@/lib/storage";
 import { defaultTheme } from "@/lib/colors";
 
 function makeId(): string {
@@ -18,7 +30,9 @@ function lastPreview(messages: RawMessage[]): { preview: string; ts: number } {
     const m = messages[i];
     if (m.deleted) continue;
     if (m.system) return { preview: m.text.slice(0, 80), ts: m.ts };
-    const text = m.isMedia ? "📷 Media" : m.text.replace(/\n+/g, " ").slice(0, 80);
+    const text = m.isMedia
+      ? "📷 Media"
+      : m.text.replace(/\n+/g, " ").slice(0, 80);
     return { preview: text, ts: m.ts };
   }
   return { preview: "", ts: 0 };
@@ -43,10 +57,16 @@ interface ChatStoreState {
   ensureLoaded: (id: string) => ChatData | null;
   setMe: (chatId: string, me: string | null) => void;
   setTheme: (chatId: string, theme: BubbleTheme) => void;
+  setAIPersonas: (chatId: string, personas: string[]) => void;
   addMessage: (chatId: string, sender: string, text: string) => void;
   editMessage: (chatId: string, messageId: number, text: string) => void;
   deleteMessage: (chatId: string, messageId: number) => void;
-  toggleReaction: (chatId: string, messageId: number, emoji: string, by: string) => void;
+  toggleReaction: (
+    chatId: string,
+    messageId: number,
+    emoji: string,
+    by: string,
+  ) => void;
   removeChatEntirely: (chatId: string) => void;
   clearAllStorage: () => void;
   setToast: (msg: string | null) => void;
@@ -73,7 +93,8 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     try {
       const text = await file.text();
       const { messages, participants } = await parseChatFile(text, {
-        onProgress: (processed, total) => set({ importProgress: { fileName: file.name, processed, total } }),
+        onProgress: (processed, total) =>
+          set({ importProgress: { fileName: file.name, processed, total } }),
       });
       const id = makeId();
       const now = Date.now();
@@ -90,6 +111,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
         createdAt: now,
         updatedAt: now,
         theme: defaultTheme(),
+        aiPersonas: [],
         messages,
         reactions: {},
       };
@@ -99,10 +121,15 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
         importProgress: null,
       }));
       const result = saveChat(chat);
-      set((s) => ({ index: [...s.index.filter((c) => c.id !== id), toIndexEntry(chat)] }));
+      set((s) => ({
+        index: [...s.index.filter((c) => c.id !== id), toIndexEntry(chat)],
+      }));
       if (!result.ok) set({ toast: result.error ?? "Could not save chat." });
     } catch (e) {
-      set({ importProgress: null, toast: `Failed to parse file: ${(e as Error).message}` });
+      set({
+        importProgress: null,
+        toast: `Failed to parse file: ${(e as Error).message}`,
+      });
     }
   },
 
@@ -125,9 +152,15 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     updateChat(set, get, chatId, (chat) => ({ ...chat, theme }));
   },
 
+  setAIPersonas: (chatId, personas) => {
+    updateChat(set, get, chatId, (chat) => ({ ...chat, aiPersonas: personas }));
+  },
+
   addMessage: (chatId, sender, text) => {
     updateChat(set, get, chatId, (chat) => {
-      const nextId = chat.messages.length ? Math.max(...chat.messages.map((m) => m.id)) + 1 : 0;
+      const nextId = chat.messages.length
+        ? Math.max(...chat.messages.map((m) => m.id)) + 1
+        : 0;
       const msg: RawMessage = {
         id: nextId,
         ts: Date.now(),
@@ -138,13 +171,21 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
       };
       const messages = [...chat.messages, msg];
       const { preview, ts } = lastPreview(messages);
-      return { ...chat, messages, messageCount: messages.length, lastMessagePreview: preview, lastTs: ts };
+      return {
+        ...chat,
+        messages,
+        messageCount: messages.length,
+        lastMessagePreview: preview,
+        lastTs: ts,
+      };
     });
   },
 
   editMessage: (chatId, messageId, text) => {
     updateChat(set, get, chatId, (chat) => {
-      const messages = chat.messages.map((m) => (m.id === messageId ? { ...m, text, edited: true } : m));
+      const messages = chat.messages.map((m) =>
+        m.id === messageId ? { ...m, text, edited: true } : m,
+      );
       const { preview, ts } = lastPreview(messages);
       return { ...chat, messages, lastMessagePreview: preview, lastTs: ts };
     });
@@ -152,7 +193,9 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
 
   deleteMessage: (chatId, messageId) => {
     updateChat(set, get, chatId, (chat) => {
-      const messages = chat.messages.map((m) => (m.id === messageId ? { ...m, deleted: true, text: "" } : m));
+      const messages = chat.messages.map((m) =>
+        m.id === messageId ? { ...m, deleted: true, text: "" } : m,
+      );
       const { preview, ts } = lastPreview(messages);
       return { ...chat, messages, lastMessagePreview: preview, lastTs: ts };
     });
@@ -187,7 +230,12 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
 
   clearAllStorage: () => {
     clearStorageLib();
-    set({ chats: {}, index: [], activeChatId: null, toast: "Storage cleared." });
+    set({
+      chats: {},
+      index: [],
+      activeChatId: null,
+      toast: "Storage cleared.",
+    });
   },
 
   persist: (chatId) => {
@@ -205,11 +253,13 @@ function toIndexEntry(chat: ChatData): ChatIndexEntry {
 
 function updateChat(
   set: (
-    fn: ((s: ChatStoreState) => Partial<ChatStoreState>) | Partial<ChatStoreState>
+    fn:
+      | ((s: ChatStoreState) => Partial<ChatStoreState>)
+      | Partial<ChatStoreState>,
   ) => void,
   get: () => ChatStoreState,
   chatId: string,
-  updater: (chat: ChatData) => ChatData
+  updater: (chat: ChatData) => ChatData,
 ) {
   const state = get();
   const chat = state.chats[chatId] ?? loadChat(chatId);

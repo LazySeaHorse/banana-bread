@@ -38,6 +38,7 @@ export interface ChatIndexEntry {
   createdAt: number;
   updatedAt: number;
   theme: BubbleTheme;
+  aiPersonas: string[];
 }
 
 export interface ChatData extends ChatIndexEntry {

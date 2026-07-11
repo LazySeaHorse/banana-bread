@@ -1,6 +1,17 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
-import { ArrowLeft, Info, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  Info,
+  Search,
+  Bot,
+  Sparkles,
+  Play,
+  Square,
+  Loader2,
+  AlertCircle,
+  X,
+} from "lucide-react";
 import type { ChatData, RawMessage } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -8,12 +19,31 @@ import { MessageInput } from "@/components/MessageInput";
 import { SearchPanel } from "@/components/SearchPanel";
 import { formatDay } from "@/lib/date";
 import { useChatStore } from "@/store/useChatStore";
+import { useAIReply } from "@/hooks/useAIReply";
 
-type FeedItem = { type: "separator"; key: string; label: string } | { type: "message"; key: string; message: RawMessage; groupedWithPrev: boolean; groupedWithNext: boolean; showAvatar: boolean; showSenderName: boolean };
+type FeedItem =
+  | { type: "separator"; key: string; label: string }
+  | {
+      type: "message";
+      key: string;
+      message: RawMessage;
+      groupedWithPrev: boolean;
+      groupedWithNext: boolean;
+      showAvatar: boolean;
+      showSenderName: boolean;
+    };
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
-export function ChatView({ chat, onBack, onOpenAbout }: { chat: ChatData; onBack: () => void; onOpenAbout: () => void }) {
+export function ChatView({
+  chat,
+  onBack,
+  onOpenAbout,
+}: {
+  chat: ChatData;
+  onBack: () => void;
+  onOpenAbout: () => void;
+}) {
   const editMessage = useChatStore((s) => s.editMessage);
   const deleteMessage = useChatStore((s) => s.deleteMessage);
   const toggleReaction = useChatStore((s) => s.toggleReaction);
@@ -23,6 +53,10 @@ export function ChatView({ chat, onBack, onOpenAbout }: { chat: ChatData; onBack
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [sendAs, setSendAs] = useState(chat.me || chat.participants[0] || "Me");
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+
+  const aiPersonas = chat.aiPersonas ?? [];
+  const hasAIPersonas = aiPersonas.length > 0;
+  const ai = useAIReply(chat);
 
   useEffect(() => {
     setSendAs(chat.me || chat.participants[0] || "Me");
@@ -36,7 +70,11 @@ export function ChatView({ chat, onBack, onOpenAbout }: { chat: ChatData; onBack
       if (!Number.isNaN(m.ts) && m.ts) {
         const dayKey = new Date(m.ts).toDateString();
         if (dayKey !== lastDay) {
-          items.push({ type: "separator", key: `sep-${m.ts}-${i}`, label: formatDay(m.ts) });
+          items.push({
+            type: "separator",
+            key: `sep-${m.ts}-${i}`,
+            label: formatDay(m.ts),
+          });
           lastDay = dayKey;
         }
       }
@@ -82,7 +120,11 @@ export function ChatView({ chat, onBack, onOpenAbout }: { chat: ChatData; onBack
     if (idx === undefined) return;
     setHighlightId(messageId);
     requestAnimationFrame(() => {
-      virtuosoRef.current?.scrollToIndex({ index: idx, align: "center", behavior: "auto" });
+      virtuosoRef.current?.scrollToIndex({
+        index: idx,
+        align: "center",
+        behavior: "auto",
+      });
     });
     setTimeout(() => setHighlightId(null), 1800);
   };
@@ -97,19 +139,59 @@ export function ChatView({ chat, onBack, onOpenAbout }: { chat: ChatData; onBack
         <button onClick={onBack} className="p-1 text-neutral-700 md:hidden">
           <ArrowLeft size={22} />
         </button>
-        <button className="flex min-w-0 flex-1 items-center gap-2.5" onClick={onOpenAbout}>
+        <button
+          className="flex min-w-0 flex-1 items-center gap-2.5"
+          onClick={onOpenAbout}
+        >
           <Avatar name={headerName} size={36} />
           <div className="min-w-0 text-left">
-            <div className="truncate text-[14px] font-semibold text-neutral-900">{headerName}</div>
+            <div className="flex items-center gap-1.5 truncate text-[14px] font-semibold text-neutral-900">
+              {headerName}
+              {hasAIPersonas && (
+                <span
+                  title={`AI-controlled: ${aiPersonas.join(", ")}`}
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5B51D8] to-[#E1306C] text-white"
+                >
+                  <Bot size={10} />
+                </span>
+              )}
+            </div>
             <div className="truncate text-[11.5px] text-neutral-400">
-              {isGroup ? `${chat.participants.length} participants` : chat.me ? "Active" : "Tap for chat info"}
+              {ai.isGenerating && ai.generatingPersona
+                ? `${ai.generatingPersona} is typing…`
+                : isGroup
+                  ? `${chat.participants.length} participants`
+                  : chat.me
+                    ? "Active"
+                    : "Tap for chat info"}
             </div>
           </div>
         </button>
-        <button onClick={() => setSearchOpen(true)} className="p-1.5 text-neutral-700 hover:text-black">
+        {hasAIPersonas && (
+          <button
+            onClick={() => (ai.isAutoPlaying ? ai.stop() : ai.startAutoPlay())}
+            className={`rounded-full p-1.5 ${
+              ai.isAutoPlaying
+                ? "bg-neutral-900 text-white"
+                : "text-neutral-700 hover:text-black"
+            }`}
+            title={
+              ai.isAutoPlaying ? "Stop AI auto-play" : "Auto-play AI replies"
+            }
+          >
+            {ai.isAutoPlaying ? <Square size={18} /> : <Play size={18} />}
+          </button>
+        )}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="p-1.5 text-neutral-700 hover:text-black"
+        >
           <Search size={20} />
         </button>
-        <button onClick={onOpenAbout} className="p-1.5 text-neutral-700 hover:text-black">
+        <button
+          onClick={onOpenAbout}
+          className="p-1.5 text-neutral-700 hover:text-black"
+        >
           <Info size={20} />
         </button>
       </div>
@@ -151,15 +233,60 @@ export function ChatView({ chat, onBack, onOpenAbout }: { chat: ChatData; onBack
                 highlighted={highlightId === m.id}
                 onEdit={(text) => editMessage(chat.id, m.id, text)}
                 onDelete={() => deleteMessage(chat.id, m.id)}
-                onReact={(emoji) => toggleReaction(chat.id, m.id, emoji, sendAs)}
+                onReact={(emoji) =>
+                  toggleReaction(chat.id, m.id, emoji, sendAs)
+                }
               />
             );
           }}
         />
         {searchOpen && (
-          <SearchPanel messages={chat.messages} onJump={handleJump} onClose={() => setSearchOpen(false)} />
+          <SearchPanel
+            messages={chat.messages}
+            onJump={handleJump}
+            onClose={() => setSearchOpen(false)}
+          />
         )}
       </div>
+
+      {ai.error && (
+        <div className="flex items-start gap-2 border-t border-red-100 bg-red-50 px-3 py-2 text-[12.5px] text-red-700">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+          <span className="flex-1">{ai.error}</span>
+          <button
+            onClick={ai.clearError}
+            className="shrink-0 text-red-400 hover:text-red-700"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {hasAIPersonas && (
+        <div className="flex items-center gap-2 border-t border-neutral-100 bg-neutral-50 px-3 py-1.5">
+          <Bot size={14} className="shrink-0 text-neutral-400" />
+          <span className="min-w-0 flex-1 truncate text-[11.5px] text-neutral-500">
+            {ai.isGenerating
+              ? `Generating as ${ai.generatingPersona}…`
+              : ai.isAutoPlaying
+                ? "Auto-play running…"
+                : `AI-controlled: ${aiPersonas.join(", ")}`}
+          </span>
+          <button
+            onClick={() => void ai.generateFor()}
+            disabled={ai.isGenerating || ai.isAutoPlaying}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11.5px] font-medium text-neutral-700 shadow-sm ring-1 ring-neutral-200 hover:bg-neutral-100 disabled:opacity-50"
+            title="Generate the next AI reply"
+          >
+            {ai.isGenerating ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Sparkles size={12} />
+            )}
+            Reply
+          </button>
+        </div>
+      )}
 
       <MessageInput
         participants={chat.participants.length ? chat.participants : ["Me"]}
