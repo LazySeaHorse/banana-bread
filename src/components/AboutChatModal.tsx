@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { X, Check, Trash2, Bot } from "lucide-react";
 import type { ChatData } from "@/types";
 import { Avatar } from "@/components/Avatar";
@@ -18,6 +18,166 @@ function Bar({ pct, color }: { pct: number; color?: string }) {
           background: color ?? "linear-gradient(90deg,#5B51D8,#E1306C)",
         }}
       />
+    </div>
+  );
+}
+
+function formatReplyTime(minutes: number): string {
+  if (minutes <= 0) return "N/A";
+  if (minutes < 1) {
+    return `${Math.round(minutes * 60)}s`;
+  }
+  if (minutes < 60) {
+    return `${minutes.toFixed(1)}m`;
+  }
+  const hours = minutes / 60;
+  if (hours < 24) {
+    return `${hours.toFixed(1)}h`;
+  }
+  return `${(hours / 24).toFixed(1)}d`;
+}
+
+function formatSilenceDuration(ms: number): string {
+  if (ms <= 0) return "0m";
+  const seconds = ms / 1000;
+  const minutes = seconds / 60;
+  const hours = minutes / 60;
+  const days = hours / 24;
+
+  if (days >= 1) {
+    return `${days.toFixed(1)} days`;
+  }
+  if (hours >= 1) {
+    return `${hours.toFixed(1)} hours`;
+  }
+  return `${Math.round(minutes)} minutes`;
+}
+
+function MonthlyTrendChart({ trend }: { trend: { month: string; count: number }[] }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  if (trend.length === 0) return null;
+
+  const maxCount = Math.max(...trend.map((d) => d.count), 1);
+  const width = 360;
+  const height = 125;
+  const paddingLeft = 32;
+  const paddingRight = 10;
+  const paddingTop = 20;
+  const paddingBottom = 20;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+  const barWidth = trend.length > 0 ? (chartWidth / trend.length) * 0.75 : 0;
+  const barGap = trend.length > 0 ? (chartWidth / trend.length) * 0.25 : 0;
+
+  return (
+    <div className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h4 className="text-xs font-semibold text-neutral-600">Monthly Volume</h4>
+        <div className="text-[11px] font-medium text-neutral-500 min-h-[16px]">
+          {hoveredIdx !== null ? (
+            <span className="text-neutral-800 font-semibold bg-neutral-200/60 px-2 py-0.5 rounded">
+              {trend[hoveredIdx].month}: {trend[hoveredIdx].count.toLocaleString()} msg
+            </span>
+          ) : (
+            <span className="text-neutral-400 italic">Hover bars to view details</span>
+          )}
+        </div>
+      </div>
+
+      <div className="w-full overflow-x-auto select-none scrollbar-thin">
+        <div style={{ minWidth: Math.max(trend.length * 16, 320) }}>
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible">
+            <defs>
+              <linearGradient id="chartBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#5B51D8" />
+                <stop offset="100%" stopColor="#E1306C" stopOpacity="0.4" />
+              </linearGradient>
+              <linearGradient id="chartBarGradHover" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6E64EC" />
+                <stop offset="100%" stopColor="#F2417D" />
+              </linearGradient>
+            </defs>
+
+            {/* Y Axis Grid Lines */}
+            {[0, 0.5, 1].map((ratio, i) => {
+              const y = paddingTop + chartHeight * (1 - ratio);
+              const val = Math.round(maxCount * ratio);
+              return (
+                <g key={i}>
+                  <line
+                    x1={paddingLeft}
+                    y1={y}
+                    x2={width - paddingRight}
+                    y2={y}
+                    stroke="#E5E5E5"
+                    strokeWidth={1}
+                    strokeDasharray="3,3"
+                  />
+                  <text
+                    x={paddingLeft - 6}
+                    y={y + 3}
+                    textAnchor="end"
+                    className="text-[9px] fill-neutral-400 font-medium"
+                  >
+                    {val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Bars */}
+            {trend.map((d, idx) => {
+              const x = paddingLeft + idx * (barWidth + barGap) + barGap / 2;
+              const barHeight = (d.count / maxCount) * chartHeight;
+              const y = paddingTop + chartHeight - barHeight;
+              const isHovered = hoveredIdx === idx;
+
+              return (
+                <rect
+                  key={idx}
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(barHeight, 2)}
+                  rx={Math.max(1, barWidth / 6)}
+                  ry={Math.max(1, barWidth / 6)}
+                  fill={isHovered ? "url(#chartBarGradHover)" : "url(#chartBarGrad)"}
+                  className="transition-all duration-150 cursor-pointer"
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                />
+              );
+            })}
+
+            {/* X Axis labels */}
+            {trend.map((d, idx) => {
+              const x = paddingLeft + idx * (barWidth + barGap) + barWidth / 2 + barGap / 2;
+              const shouldShowLabel =
+                trend.length <= 8 ||
+                idx === 0 ||
+                idx === trend.length - 1 ||
+                (trend.length > 8 && idx === Math.floor(trend.length / 2)) ||
+                (trend.length > 15 && idx % Math.floor(trend.length / 4) === 0);
+
+              if (!shouldShowLabel) return null;
+
+              return (
+                <text
+                  key={idx}
+                  x={x}
+                  y={height - 4}
+                  textAnchor="middle"
+                  className="text-[9px] fill-neutral-400 font-medium"
+                >
+                  {d.month}
+                </text>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
     </div>
   );
 }
@@ -218,6 +378,100 @@ export function AboutChatModal({
           </div>
         </section>
 
+        {/* participant breakdown */}
+        <section className="border-b border-neutral-100 px-4 py-4">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+            Participant Breakdown
+          </h3>
+          <div className="flex flex-col gap-3">
+            {stats.participants.map((p) => (
+              <div
+                key={p.name}
+                className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-3 flex flex-col gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <Avatar name={p.name} size={28} />
+                  <span className="text-sm font-semibold text-neutral-800 truncate">
+                    {p.name}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <div className="flex justify-between text-neutral-500">
+                    <span>✍️ Words/msg:</span>
+                    <span className="font-medium text-neutral-700">
+                      {p.avgWordsPerMessage.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-neutral-500">
+                    <span>⏱️ Reply time:</span>
+                    <span className="font-medium text-neutral-700">
+                      {formatReplyTime(p.avgReplyMinutes)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-neutral-500">
+                    <span>🔁 Double-text:</span>
+                    <span className="font-medium text-neutral-700">
+                      {p.doubleTextRate.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-neutral-500">
+                    <span>🦉 Night owl:</span>
+                    <span className="font-medium text-neutral-700">
+                      {p.nightOwlScore.toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* conversation starters */}
+        <section className="border-b border-neutral-100 px-4 py-4">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+            Conversation Starters
+          </h3>
+          <p className="mb-2.5 text-xs text-neutral-400 leading-snug">
+            Who initiates discussions after at least 6 hours of silence.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            {stats.conversationStarters.length === 0 ? (
+              <div className="text-xs text-neutral-400 italic">
+                No conversation starters detected.
+              </div>
+            ) : (
+              stats.conversationStarters.map((s) => {
+                const maxStarter = Math.max(
+                  ...stats.conversationStarters.map((x) => x.count),
+                  1,
+                );
+                const pct = (s.count / maxStarter) * 100;
+                return (
+                  <div key={s.name} className="flex items-center gap-2">
+                    <Avatar name={s.name} size={22} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-neutral-700 truncate">
+                          {s.name}
+                        </span>
+                        <span className="text-neutral-500 font-semibold text-[11px]">
+                          {s.count} times
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
         {/* hour histogram */}
         <section className="border-b border-neutral-100 px-4 py-4">
           <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
@@ -268,6 +522,14 @@ export function AboutChatModal({
           </div>
         </section>
 
+        {/* monthly activity trend */}
+        <section className="border-b border-neutral-100 px-4 py-4">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+            Monthly Trend
+          </h3>
+          <MonthlyTrendChart trend={stats.monthlyTrend} />
+        </section>
+
         {/* emojis */}
         {stats.topEmojis.length > 0 && (
           <section className="border-b border-neutral-100 px-4 py-4">
@@ -301,9 +563,19 @@ export function AboutChatModal({
             </p>
           )}
           {stats.longest && (
-            <p>
+            <p className="mb-1">
               ✍️ Longest message by <b>{stats.longest.sender}</b> (
               {stats.longest.length} chars)
+            </p>
+          )}
+          {stats.longestStreakDays > 0 && (
+            <p className="mb-1">
+              📈 Longest active streak: <b>{stats.longestStreakDays} consecutive days</b>
+            </p>
+          )}
+          {stats.longestSilenceMs > 0 && (
+            <p>
+              💤 Longest silence: <b>{formatSilenceDuration(stats.longestSilenceMs)}</b>
             </p>
           )}
         </section>

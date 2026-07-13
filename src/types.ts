@@ -46,6 +46,39 @@ export interface ChatData extends ChatIndexEntry {
   reactions: Record<number, Reaction[]>;
 }
 
+export interface ParticipantStat {
+  name: string;
+  count: number;
+  pct: number;
+  words: number;
+  mediaCount: number;
+  avgWordsPerMessage: number;
+  doubleTextRate: number;
+  nightOwlScore: number;
+  avgReplyMinutes: number;
+}
+
+export interface ChatStats {
+  totalMessages: number;
+  totalWords: number;
+  mediaCount: number;
+  systemCount: number;
+  firstTs: number | null;
+  lastTs: number | null;
+  durationDays: number;
+  avgPerDay: number;
+  participants: ParticipantStat[];
+  hourHistogram: number[]; // 24
+  weekdayHistogram: number[]; // 7 (0 = Sunday)
+  topEmojis: { emoji: string; count: number }[];
+  longest: { sender: string; length: number; preview: string } | null;
+  mostActiveDay: { date: string; count: number } | null;
+  monthlyTrend: { month: string; count: number }[];
+  conversationStarters: { name: string; count: number }[];
+  longestSilenceMs: number;
+  longestStreakDays: number;
+}
+
 export interface ParseProgress {
   processed: number;
   total: number;
