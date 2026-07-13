@@ -11,7 +11,6 @@ import { cn } from "@/utils/cn";
 // Import new visualization widgets
 import { CalendarHeatmapWidget } from "@/components/CalendarHeatmapWidget";
 import { RadialActivityClock } from "@/components/RadialActivityClock";
-import { WordCloudWidget } from "@/components/WordCloudWidget";
 import {
   StackedAreaVolumeChart,
   ParticipantRadarChart,
@@ -61,6 +60,135 @@ function formatSilenceDuration(ms: number): string {
     return `${hours.toFixed(1)} hours`;
   }
   return `${Math.round(minutes)} minutes`;
+}
+
+function MonthlyTrendChart({ trend }: { trend: { month: string; count: number }[] }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  if (trend.length === 0) return null;
+
+  const maxCount = Math.max(...trend.map((d) => d.count), 1);
+  const width = 360;
+  const height = 125;
+  const paddingLeft = 32;
+  const paddingRight = 10;
+  const paddingTop = 20;
+  const paddingBottom = 20;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+  const barWidth = trend.length > 0 ? (chartWidth / trend.length) * 0.75 : 0;
+  const barGap = trend.length > 0 ? (chartWidth / trend.length) * 0.25 : 0;
+
+  return (
+    <div className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h4 className="text-xs font-semibold text-neutral-600">Monthly Volume</h4>
+        <div className="text-[11px] font-medium text-neutral-500 min-h-[16px]">
+          {hoveredIdx !== null ? (
+            <span className="text-neutral-800 font-semibold bg-neutral-200/60 px-2 py-0.5 rounded">
+              {trend[hoveredIdx].month}: {trend[hoveredIdx].count.toLocaleString()} msg
+            </span>
+          ) : (
+            <span className="text-neutral-400 italic">Hover bars to view details</span>
+          )}
+        </div>
+      </div>
+
+      <div className="w-full overflow-x-auto select-none scrollbar-thin">
+        <div style={{ minWidth: Math.max(trend.length * 16, 320) }}>
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible">
+            <defs>
+              <linearGradient id="chartBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#5B51D8" />
+                <stop offset="100%" stopColor="#E1306C" stopOpacity="0.4" />
+              </linearGradient>
+              <linearGradient id="chartBarGradHover" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6E64EC" />
+                <stop offset="100%" stopColor="#F2417D" />
+              </linearGradient>
+            </defs>
+
+            {/* Y Axis Grid Lines */}
+            {[0, 0.5, 1].map((ratio, i) => {
+              const y = paddingTop + chartHeight * (1 - ratio);
+              const val = Math.round(maxCount * ratio);
+              return (
+                <g key={i}>
+                  <line
+                    x1={paddingLeft}
+                    y1={y}
+                    x2={width - paddingRight}
+                    y2={y}
+                    stroke="#E5E5E5"
+                    strokeWidth={1}
+                    strokeDasharray="3,3"
+                  />
+                  <text
+                    x={paddingLeft - 6}
+                    y={y + 3}
+                    textAnchor="end"
+                    className="text-[9px] fill-neutral-400 font-medium"
+                  >
+                    {val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Bars */}
+            {trend.map((d, idx) => {
+              const x = paddingLeft + idx * (barWidth + barGap) + barGap / 2;
+              const barHeight = (d.count / maxCount) * chartHeight;
+              const y = paddingTop + chartHeight - barHeight;
+              const isHovered = hoveredIdx === idx;
+
+              return (
+                <rect
+                  key={idx}
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(barHeight, 2)}
+                  rx={Math.max(1, barWidth / 6)}
+                  ry={Math.max(1, barWidth / 6)}
+                  fill={isHovered ? "url(#chartBarGradHover)" : "url(#chartBarGrad)"}
+                  className="transition-all duration-150 cursor-pointer"
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                />
+              );
+            })}
+
+            {/* X Axis labels */}
+            {trend.map((d, idx) => {
+              const x = paddingLeft + idx * (barWidth + barGap) + barWidth / 2 + barGap / 2;
+              const shouldShowLabel =
+                trend.length <= 8 ||
+                idx === 0 ||
+                idx === trend.length - 1 ||
+                (trend.length > 8 && idx === Math.floor(trend.length / 2)) ||
+                (trend.length > 15 && idx % Math.floor(trend.length / 4) === 0);
+
+              if (!shouldShowLabel) return null;
+
+              return (
+                <text
+                  key={idx}
+                  x={x}
+                  y={height - 4}
+                  textAnchor="middle"
+                  className="text-[9px] fill-neutral-400 font-medium"
+                >
+                  {d.month}
+                </text>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function AboutChatModal({
@@ -412,6 +540,34 @@ export function AboutChatModal({
               </div>
             </section>
 
+            {/* Monthly activity trend */}
+            <section className="border-b border-neutral-100 px-4 py-4">
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                Monthly Trend
+              </h3>
+              <MonthlyTrendChart trend={stats.monthlyTrend} />
+            </section>
+
+            {/* emojis */}
+            {stats.topEmojis.length > 0 && (
+              <section className="border-b border-neutral-100 px-4 py-4">
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Top emoji
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {stats.topEmojis.map((e) => (
+                    <div
+                      key={e.emoji}
+                      className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-sm"
+                    >
+                      <span>{e.emoji}</span>
+                      <span className="text-xs text-neutral-500">{e.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Fun facts */}
             <section className="border-b border-neutral-100 px-4 py-4 text-sm text-neutral-600">
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
@@ -461,10 +617,11 @@ export function AboutChatModal({
             {/* 1. GitHub-style Calendar Heatmap */}
             <CalendarHeatmapWidget dailyActivity={stats.dailyActivity} theme={chat.theme} />
 
-            {/* 2. Side-by-side: Routine Radial Clock & Topic Word Cloud */}
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <RadialActivityClock hourHistogram={stats.hourHistogram} theme={chat.theme} />
-              <WordCloudWidget words={stats.wordCloudWords} theme={chat.theme} />
+            {/* 2. Routine Radial Clock */}
+            <div className="flex justify-center w-full">
+              <div className="w-full max-w-md">
+                <RadialActivityClock hourHistogram={stats.hourHistogram} theme={chat.theme} />
+              </div>
             </div>
 
             {/* 3. Stacked Area Chart - Messages by Month split by participant */}
