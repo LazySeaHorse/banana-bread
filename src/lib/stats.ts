@@ -89,7 +89,7 @@ export function computeStats(chat: ChatData): ChatStats {
     }))
     .sort((a, b) => b.count - a.count);
 
-  const durationDays = firstTs && lastTs ? Math.max(1, Math.round((lastTs - firstTs) / 86400000)) : 0;
+  const durationDays = dayCounts.size;
 
   const topEmojis = Array.from(emojiCounts.entries())
     .map(([emoji, count]) => ({ emoji, count }))
@@ -109,7 +109,7 @@ export function computeStats(chat: ChatData): ChatStats {
     firstTs,
     lastTs,
     durationDays,
-    avgPerDay: durationDays ? nonSystemTotal / durationDays : nonSystemTotal,
+    avgPerDay: durationDays ? nonSystemTotal / durationDays : 0,
     participants,
     hourHistogram,
     weekdayHistogram,
