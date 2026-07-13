@@ -62,7 +62,9 @@ export default function App() {
           </div>
 
           {/* main pane */}
-          <div className={`h-full min-w-0 flex-1 ${activeChat ? "block" : "hidden md:block"}`}>
+          <div
+            className={`h-full min-w-0 flex-1 ${activeChat ? "block" : "hidden md:block"}`}
+          >
             {activeChat ? (
               <ChatView
                 key={activeChat.id}
@@ -72,10 +74,12 @@ export default function App() {
               />
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-50 text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#5B51D8] to-[#E1306C]">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#FCD34D] to-[#D97706]">
                   <MessageCircle size={34} className="text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-neutral-700">Your Messages</h2>
+                <h2 className="text-lg font-semibold text-neutral-700">
+                  Your Messages
+                </h2>
                 <p className="max-w-xs text-sm text-neutral-400">
                   Select a chat, or import a new WhatsApp export to get started.
                 </p>
@@ -85,14 +89,18 @@ export default function App() {
         </div>
       </div>
 
-      {aboutOpen && activeChat && <AboutChatModal chat={activeChat} onClose={() => setAboutOpen(false)} />}
+      {aboutOpen && activeChat && (
+        <AboutChatModal chat={activeChat} onClose={() => setAboutOpen(false)} />
+      )}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
       {importProgress && (
         <div className="fixed bottom-4 left-1/2 z-50 flex w-[92%] max-w-sm -translate-x-1/2 items-center gap-3 rounded-2xl bg-neutral-900 px-4 py-3 text-white shadow-xl">
           <Loader2 size={18} className="shrink-0 animate-spin" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">Importing {importProgress.fileName}</p>
+            <p className="truncate text-sm font-medium">
+              Importing {importProgress.fileName}
+            </p>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
               <div
                 className="h-full rounded-full bg-white transition-all"

@@ -59,11 +59,12 @@ export function ChatListSidebar({
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <MessageCircleHeart size={40} className="text-neutral-300" />
             <p className="text-sm text-neutral-400">
-              Import a WhatsApp exported chat (.txt) to see it rendered here, Instagram DM style.
+              Import a WhatsApp exported chat (.txt) to see it rendered here,
+              Instagram DM style.
             </p>
             <button
               onClick={() => fileRef.current?.click()}
-              className="rounded-full bg-gradient-to-r from-[#5B51D8] to-[#E1306C] px-4 py-2 text-sm font-medium text-white shadow"
+              className="rounded-full bg-gradient-to-r from-[#FCD34D] to-[#D97706] px-4 py-2 text-sm font-medium text-white shadow"
             >
               Import chat
             </button>
@@ -75,18 +76,28 @@ export function ChatListSidebar({
             onClick={() => onOpenChat(c.id)}
             className={cn(
               "flex w-full items-center gap-3 border-b border-neutral-50 px-4 py-3 text-left hover:bg-neutral-50",
-              activeChatId === c.id && "bg-neutral-50"
+              activeChatId === c.id && "bg-neutral-50",
             )}
           >
             <Avatar name={c.title} size={48} />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-[14px] font-semibold text-neutral-900">{c.title}</span>
-                <span className="shrink-0 text-[11px] text-neutral-400">{formatListTimestamp(c.lastTs)}</span>
+                <span className="truncate text-[14px] font-semibold text-neutral-900">
+                  {c.title}
+                </span>
+                <span className="shrink-0 text-[11px] text-neutral-400">
+                  {formatListTimestamp(c.lastTs)}
+                </span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-[12.5px] text-neutral-500">{c.lastMessagePreview || "No messages"}</p>
-                {!c.me && <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">set "you"</span>}
+                <p className="truncate text-[12.5px] text-neutral-500">
+                  {c.lastMessagePreview || "No messages"}
+                </p>
+                {!c.me && (
+                  <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">
+                    set "you"
+                  </span>
+                )}
               </div>
             </div>
           </button>
