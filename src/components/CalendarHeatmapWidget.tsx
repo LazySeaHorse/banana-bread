@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import CalendarHeatmap from "react-calendar-heatmap";
-import "react-calendar-heatmap/dist/styles.css";
 import type { BubbleTheme } from "@/types";
 
 interface ActivityDay {
@@ -15,7 +13,6 @@ export function CalendarHeatmapWidget({
   dailyActivity: ActivityDay[];
   theme: BubbleTheme;
 }) {
-  // Filter out which years are available in the data
   const years = useMemo(() => {
     const yrs = new Set<string>();
     for (const d of dailyActivity) {
@@ -42,41 +39,95 @@ export function CalendarHeatmapWidget({
     return counts.length > 0 ? Math.max(...counts, 1) : 1;
   }, [filteredData]);
 
-  // Determine starting and ending dates for rendering
-  const dateRange = useMemo(() => {
-    if (filteredData.length === 0) {
-      const today = new Date();
-      const oneYearAgo = new Date();
-      oneYearAgo.setDate(today.getDate() - 365);
-      return { start: oneYearAgo, end: today };
-    }
-    
+  // Construct the calendar grid aligned by columns (weeks)
+  const gridData = useMemo(() => {
+    let start: Date;
+    let end: Date;
+
     if (selectedYear === "last365") {
       const today = new Date();
       const oneYearAgo = new Date();
       oneYearAgo.setDate(today.getDate() - 365);
-      return { start: oneYearAgo, end: today };
+      start = oneYearAgo;
+      end = today;
+    } else {
+      const yearNum = Number(selectedYear);
+      start = new Date(yearNum, 0, 1);
+      end = new Date(yearNum, 11, 31);
     }
-    
-    // For a specific year, display Jan 1 to Dec 31
-    const yearNum = Number(selectedYear);
-    return {
-      start: new Date(yearNum, 0, 1),
-      end: new Date(yearNum, 11, 31),
-    };
+
+    // Align start date to the beginning of the week (Sunday = 0)
+    const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const dayOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - dayOfWeek); // Move back to Sunday
+
+    const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    // Align end date to the end of the week (Saturday = 6)
+    const endDayOfWeek = endDate.getDay();
+    endDate.setDate(endDate.getDate() + (6 - endDayOfWeek)); // Move forward to Saturday
+
+    // Build map of counts for quick lookup
+    const countsMap = new Map<string, number>();
+    for (const d of filteredData) {
+      countsMap.set(d.date, d.count);
+    }
+
+    // Generate list of days
+    const days: { date: Date; dateStr: string; count: number }[] = [];
+    const cur = new Date(startDate.getTime());
+    while (cur <= endDate) {
+      const yr = cur.getFullYear();
+      const mo = String(cur.getMonth() + 1).padStart(2, "0");
+      const dy = String(cur.getDate()).padStart(2, "0");
+      const key = `${yr}-${mo}-${dy}`;
+      days.push({
+        date: new Date(cur.getTime()),
+        dateStr: key,
+        count: countsMap.get(key) ?? 0,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    // Group into columns (weeks)
+    const weeks: { dateStr: string; count: number; date: Date }[][] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(days.slice(i, i + 7));
+    }
+
+    return weeks;
   }, [filteredData, selectedYear]);
 
+  // Extract months labels and their column index for the SVG header
+  const monthLabels = useMemo(() => {
+    const labels: { label: string; colIndex: number }[] = [];
+    let prevMonth = -1;
+    gridData.forEach((week, colIdx) => {
+      const firstDayOfWeek = week[0]?.date;
+      if (firstDayOfWeek) {
+        const curMonth = firstDayOfWeek.getMonth();
+        if (curMonth !== prevMonth) {
+          const label = firstDayOfWeek.toLocaleDateString("en-US", { month: "short" });
+          // Only add if it's not too cramped (at least 2 columns space)
+          if (labels.length === 0 || colIdx - labels[labels.length - 1].colIndex > 2) {
+            labels.push({ label, colIndex: colIdx });
+            prevMonth = curMonth;
+          }
+        }
+      }
+    });
+    return labels;
+  }, [gridData]);
+
   // CSS variables for matching the bubble color theme dynamically
-  const inlineStyles = useMemo(() => {
+  const themeStyles = useMemo(() => {
     const from = theme.meFrom || "#5B51D8";
     const to = theme.meTo || "#E1306C";
-    
     return {
       "--color-empty": "#e5e7eb", // gray-200
-      "--color-scale-1": `${from}30`, // ~19% opacity
-      "--color-scale-2": `${from}75`, // ~46% opacity
-      "--color-scale-3": `${from}c8`, // ~78% opacity
-      "--color-scale-4": to,          // 100% of 'to' color
+      "--color-scale-1": `${from}30`,
+      "--color-scale-2": `${from}75`,
+      "--color-scale-3": `${from}c8`,
+      "--color-scale-4": to,
     } as React.CSSProperties;
   }, [theme]);
 
@@ -84,28 +135,28 @@ export function CalendarHeatmapWidget({
     return filteredData.reduce((acc, curr) => acc + curr.count, 0);
   }, [filteredData]);
 
-  // Scale levels
   const scaleStep = maxCount / 4;
 
-  return (
-    <div className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100" style={inlineStyles}>
-      <style>{`
-        .theme-matched-heatmap .react-calendar-heatmap .color-empty { fill: var(--color-empty); }
-        .theme-matched-heatmap .react-calendar-heatmap .color-scale-1 { fill: var(--color-scale-1); }
-        .theme-matched-heatmap .react-calendar-heatmap .color-scale-2 { fill: var(--color-scale-2); }
-        .theme-matched-heatmap .react-calendar-heatmap .color-scale-3 { fill: var(--color-scale-3); }
-        .theme-matched-heatmap .react-calendar-heatmap .color-scale-4 { fill: var(--color-scale-4); }
-        .theme-matched-heatmap .react-calendar-heatmap rect {
-          rx: 2px;
-          ry: 2px;
-          transition: fill 0.15s ease;
-        }
-        .theme-matched-heatmap .react-calendar-heatmap rect:hover {
-          stroke: #374151;
-          stroke-width: 1px;
-        }
-      `}</style>
+  const getScaleLevel = (count: number) => {
+    if (count === 0) return 0;
+    return Math.min(4, Math.ceil(count / scaleStep));
+  };
 
+  const getBgStyle = (level: number) => {
+    if (level === 0) return "var(--color-empty)";
+    return `var(--color-scale-${level})`;
+  };
+
+  const cellSize = 10;
+  const gap = 2;
+  const paddingLeft = 30;
+  const paddingTop = 16;
+
+  return (
+    <div
+      className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100 select-none"
+      style={themeStyles}
+    >
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Chat Heatmap</h4>
@@ -141,29 +192,62 @@ export function CalendarHeatmapWidget({
         </div>
       </div>
 
-      <div className="theme-matched-heatmap select-none overflow-x-auto scrollbar-none py-1">
-        <div style={{ minWidth: "560px" }}>
-          <CalendarHeatmap
-            startDate={dateRange.start}
-            endDate={dateRange.end}
-            values={filteredData}
-            classForValue={(value) => {
-              if (!value || value.count === 0) {
-                return "color-empty";
-              }
-              const level = Math.min(4, Math.ceil(value.count / scaleStep));
-              return `color-scale-${level}`;
-            }}
-            titleForValue={(value) => {
-              if (!value) return "No messages";
-              const formattedDate = new Date(value.date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              });
-              return `${formattedDate}: ${value.count.toLocaleString()} message${value.count === 1 ? "" : "s"}`;
-            }}
-          />
+      <div className="overflow-x-auto scrollbar-none py-1">
+        <div style={{ minWidth: "640px" }}>
+          <svg
+            width={gridData.length * (cellSize + gap) + paddingLeft}
+            height={7 * (cellSize + gap) + paddingTop}
+            className="overflow-visible"
+          >
+            {/* Weekday labels */}
+            <text x="0" y={paddingTop + cellSize - 1} className="text-[8px] fill-neutral-400 font-medium">Sun</text>
+            <text x="0" y={paddingTop + 3 * (cellSize + gap) + cellSize - 1} className="text-[8px] fill-neutral-400 font-medium">Wed</text>
+            <text x="0" y={paddingTop + 5 * (cellSize + gap) + cellSize - 1} className="text-[8px] fill-neutral-400 font-medium">Fri</text>
+
+            {/* Month labels */}
+            {monthLabels.map((lbl, idx) => (
+              <text
+                key={idx}
+                x={lbl.colIndex * (cellSize + gap) + paddingLeft}
+                y="10"
+                className="text-[9px] fill-neutral-400 font-semibold"
+              >
+                {lbl.label}
+              </text>
+            ))}
+
+            {/* Heatmap Grid */}
+            {gridData.map((week, colIdx) => (
+              <g key={colIdx} transform={`translate(${colIdx * (cellSize + gap) + paddingLeft}, ${paddingTop})`}>
+                {week.map((day, rowIdx) => {
+                  const level = getScaleLevel(day.count);
+                  const bg = getBgStyle(level);
+                  
+                  const tooltipText = `${day.date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}: ${day.count.toLocaleString()} message${day.count === 1 ? "" : "s"}`;
+
+                  return (
+                    <rect
+                      key={rowIdx}
+                      x="0"
+                      y={rowIdx * (cellSize + gap)}
+                      width={cellSize}
+                      height={cellSize}
+                      rx="1.5"
+                      ry="1.5"
+                      fill={bg}
+                      className="cursor-pointer transition-colors duration-150 hover:stroke-zinc-600 hover:stroke-[1px]"
+                    >
+                      <title>{tooltipText}</title>
+                    </rect>
+                  );
+                })}
+              </g>
+            ))}
+          </svg>
         </div>
       </div>
 
