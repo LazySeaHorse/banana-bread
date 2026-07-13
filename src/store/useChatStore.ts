@@ -21,6 +21,13 @@ function makeId(): string {
 }
 
 function deriveTitle(participants: string[], fileName: string): string {
+  const match = fileName.match(/^WhatsApp chat with\s+(.+)$/i);
+  if (match) {
+    const derived = match[1].replace(/\.txt$/i, "").trim();
+    if (derived) {
+      return derived;
+    }
+  }
   if (participants.length > 0) return participants.slice(0, 3).join(", ");
   return fileName.replace(/\.txt$/i, "");
 }
