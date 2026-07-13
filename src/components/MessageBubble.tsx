@@ -239,7 +239,12 @@ export function MessageBubble({
         {!groupedWithNext && (
           <div className={cn("mt-1 px-1 text-[10.5px] text-neutral-400", reactions.length > 0 && "mt-3.5")}>
             {formatTime(message.ts)}
-            {message.edited && <span className="ml-1 italic">edited</span>}
+            {message.edited && (
+              <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] text-neutral-400" title="Edited">
+                <Pencil size={9} className="stroke-[2.5]" />
+                <span className="italic">edited</span>
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -111,7 +111,14 @@ export async function parseChatFile(raw: string, opts: ParseChatOptions = {}): P
     const line = lines[i];
     const m = ANDROID_RE.exec(line) || IOS_RE.exec(line);
     if (m) {
-      if (current) messages.push(current);
+      if (current) {
+        const editMatch = current.text.match(/\s*<This message was edited>\s*$/i);
+        if (editMatch) {
+          current.text = current.text.replace(/\s*<This message was edited>\s*$/i, "");
+          current.edited = true;
+        }
+        messages.push(current);
+      }
       const ts = buildTimestamp(m[1], m[2], order.dayFirst);
       const rest = m[3];
       const senderMatch = SENDER_RE.exec(rest);
@@ -144,7 +151,14 @@ export async function parseChatFile(raw: string, opts: ParseChatOptions = {}): P
       await new Promise((r) => setTimeout(r, 0));
     }
   }
-  if (current) messages.push(current);
+  if (current) {
+    const editMatch = current.text.match(/\s*<This message was edited>\s*$/i);
+    if (editMatch) {
+      current.text = current.text.replace(/\s*<This message was edited>\s*$/i, "");
+      current.edited = true;
+    }
+    messages.push(current);
+  }
   opts.onProgress?.(total, total);
 
   return { messages, participants: Array.from(participantSet) };
