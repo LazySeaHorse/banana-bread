@@ -313,3 +313,75 @@ export function ReplyTimeTrendChart({
     </div>
   );
 }
+
+export function SentimentTrendChart({
+  stats,
+  theme,
+  selectedParticipants,
+}: ChartProps & { selectedParticipants: string[] }) {
+  const participants = useMemo(() => {
+    const all = stats.participants.map((p) => p.name);
+    return all.filter((p) => selectedParticipants.includes(p));
+  }, [stats, selectedParticipants]);
+  const colors = useMemo(() => getParticipantColors(stats.participants.map((p) => p.name), theme), [stats, theme]);
+
+  if (!stats.monthlySentimentSplit || stats.monthlySentimentSplit.length === 0) {
+    return (
+      <div className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic">
+        No sentiment trends available.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+      <div className="mb-4">
+        <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+          Sentiment Score Over Time
+        </h4>
+        <p className="text-[11px] text-neutral-400">Average tone (positive &gt; 0, negative &lt; 0)</p>
+      </div>
+
+      <div className="h-[220px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={stats.monthlySentimentSplit}
+            margin={{ top: 10, right: 5, left: -20, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 9, fill: "#a3a3a3" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: "#a3a3a3" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip content={<CustomChartTooltip />} />
+            {participants.map((p) => (
+              <Line
+                key={p}
+                type="monotone"
+                dataKey={p}
+                stroke={colors[p].stroke}
+                strokeWidth={2}
+                dot={{ r: 3, strokeWidth: 1 }}
+                activeDot={{ r: 5 }}
+                connectNulls={true}
+                name={p}
+              />
+            ))}
+            <Legend
+              iconSize={8}
+              iconType="circle"
+              wrapperStyle={{ fontSize: 10, paddingTop: 10 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}

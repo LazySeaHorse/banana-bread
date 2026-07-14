@@ -15,6 +15,7 @@ import {
   StackedAreaVolumeChart,
   ParticipantRadarChart,
   ReplyTimeTrendChart,
+  SentimentTrendChart,
 } from "@/components/ParticipantCharts";
 
 function Bar({ pct, color }: { pct: number; color?: string }) {
@@ -596,6 +597,12 @@ export function AboutChatModal({
                           {p.nightOwlScore.toFixed(0)}%
                         </span>
                       </div>
+                      <div className="flex justify-between text-neutral-500">
+                        <span>😊 Sentiment:</span>
+                        <span className="font-medium text-neutral-700">
+                          {p.sentimentScore > 0 ? "+" : ""}{p.sentimentScore.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                     {p.distinctiveWords && p.distinctiveWords.length > 0 && (
                       <div className="mt-2.5 border-t border-neutral-100/70 pt-2">
@@ -881,6 +888,13 @@ export function AboutChatModal({
 
             {/* 5. Reply Time Trend Line - plotted over months */}
             <ReplyTimeTrendChart
+              stats={stats}
+              theme={chat.theme}
+              selectedParticipants={selectedAnalyticsParticipants.length > 0 ? selectedAnalyticsParticipants : top5}
+            />
+
+            {/* 6. Sentiment Trend Line - plotted over months */}
+            <SentimentTrendChart
               stats={stats}
               theme={chat.theme}
               selectedParticipants={selectedAnalyticsParticipants.length > 0 ? selectedAnalyticsParticipants : top5}

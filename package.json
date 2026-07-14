@@ -17,6 +17,7 @@
     "react-is": "^19.2.7",
     "react-virtuoso": "^4.18.10",
     "recharts": "^3.9.2",
+    "sentiment": "^5.0.2",
     "tailwind-merge": "3.4.0",
     "zustand": "^5.0.14"
   },
@@ -25,6 +26,7 @@
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "@types/sentiment": "^5.0.4",
     "@vitejs/plugin-react": "5.1.1",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",

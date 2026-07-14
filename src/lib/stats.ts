@@ -1,5 +1,8 @@
 import type { ChatData, ChatStats, ParticipantStat, RawMessage } from "@/types";
 import { ENGLISH_WORDS } from "./english_dictionary";
+import Sentiment from "sentiment";
+
+const sentimentAnalyzer = new Sentiment();
 
 const EMOJI_RE = /(\p{Extended_Pictographic})/gu;
 
@@ -94,6 +97,9 @@ export function computeStats(chat: ChatData): ChatStats {
   const participantWordCounts = new Map<string, Map<string, number>>();
   const participantWordsTotal = new Map<string, number>();
 
+  const sentimentScores = new Map<string, { totalScore: number; count: number }>();
+  const monthlyParticipantSentiment = new Map<string, Map<string, { totalScore: number; count: number }>>();
+
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
     const parts = p.toLowerCase().split(/[^a-z]+/);
@@ -166,6 +172,30 @@ export function computeStats(chat: ChatData): ChatStats {
               participantTotalTypos.set(sender, (participantTotalTypos.get(sender) ?? 0) + 1);
             }
           }
+        }
+      }
+
+      // Sentiment analysis for English
+      if (m.text && !m.isMedia && !m.system) {
+        const analysis = sentimentAnalyzer.analyze(m.text);
+        const score = analysis.comparative;
+
+        const pSent = sentimentScores.get(sender) ?? { totalScore: 0, count: 0 };
+        pSent.totalScore += score;
+        pSent.count += 1;
+        sentimentScores.set(sender, pSent);
+
+        if (!Number.isNaN(m.ts) && m.ts) {
+          const d = new Date(m.ts);
+          const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          if (!monthlyParticipantSentiment.has(monthKey)) {
+            monthlyParticipantSentiment.set(monthKey, new Map());
+          }
+          const mSentMap = monthlyParticipantSentiment.get(monthKey)!;
+          const msSent = mSentMap.get(sender) ?? { totalScore: 0, count: 0 };
+          msSent.totalScore += score;
+          msSent.count += 1;
+          mSentMap.set(sender, msSent);
         }
       }
     }
@@ -293,6 +323,9 @@ export function computeStats(chat: ChatData): ChatStats {
         .slice(0, 10)
         .map((x) => x.word);
 
+      const pSent = sentimentScores.get(name) ?? { totalScore: 0, count: 0 };
+      const sentimentScore = pSent.count > 0 ? pSent.totalScore / pSent.count : 0;
+
       return {
         name,
         count: v.count,
@@ -310,6 +343,7 @@ export function computeStats(chat: ChatData): ChatStats {
         typoRate: v.words > 0 ? (typoCount / v.words) * 1000 : 0,
         topTypos,
         distinctiveWords,
+        sentimentScore,
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -330,6 +364,7 @@ export function computeStats(chat: ChatData): ChatStats {
   const monthlyTrend: { month: string; count: number }[] = [];
   const monthlyTrendSplit: { month: string; [participant: string]: number | string }[] = [];
   const replyTimeTrend: { month: string; [participant: string]: number | null | string }[] = [];
+  const monthlySentimentSplit: { month: string; [participant: string]: number | string }[] = [];
 
   if (firstTs && lastTs) {
     const firstDate = new Date(firstTs);
@@ -367,6 +402,19 @@ export function computeStats(chat: ChatData): ChatStats {
         }
       }
       replyTimeTrend.push(repEntry);
+
+      // Build sentiment trend entry
+      const mSentMap = monthlyParticipantSentiment.get(key);
+      const sentEntry: { month: string; [participant: string]: number | string } = { month: label };
+      for (const p of chat.participants) {
+        if (mSentMap && mSentMap.has(p)) {
+          const entry = mSentMap.get(p)!;
+          sentEntry[p] = Number((entry.totalScore / entry.count).toFixed(3));
+        } else {
+          sentEntry[p] = 0;
+        }
+      }
+      monthlySentimentSplit.push(sentEntry);
 
       curM++;
       if (curM > 11) {
@@ -460,5 +508,6 @@ export function computeStats(chat: ChatData): ChatStats {
     wordCloudWords,
     totalTypos: globalTotalTypos,
     topTypos,
+    monthlySentimentSplit,
   };
 }

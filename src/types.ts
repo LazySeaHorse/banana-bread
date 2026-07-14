@@ -63,6 +63,7 @@ export interface ParticipantStat {
   typoRate: number;
   topTypos: { word: string; count: number }[];
   distinctiveWords: string[];
+  sentimentScore: number;
 }
 
 export interface ChatStats {
@@ -90,6 +91,7 @@ export interface ChatStats {
   wordCloudWords: { text: string; value: number }[];
   totalTypos: number;
   topTypos: { word: string; count: number }[];
+  monthlySentimentSplit: { month: string; [participant: string]: number | string }[];
 }
 
 
