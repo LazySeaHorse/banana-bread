@@ -90,6 +90,9 @@ export function computeStats(chat: ChatData): ChatStats {
   const globalTypoCounts = new Map<string, number>();
   const participantTypos = new Map<string, Map<string, number>>();
   const participantTotalTypos = new Map<string, number>();
+  
+  const participantWordCounts = new Map<string, Map<string, number>>();
+  const participantWordsTotal = new Map<string, number>();
 
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
@@ -134,6 +137,11 @@ export function computeStats(chat: ChatData): ChatStats {
           const cleanW = w.replace(/^'+|'+$/g, "");
           if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
             wordCounts.set(cleanW, (wordCounts.get(cleanW) ?? 0) + 1);
+
+            const pWords = participantWordCounts.get(sender) ?? new Map<string, number>();
+            pWords.set(cleanW, (pWords.get(cleanW) ?? 0) + 1);
+            participantWordCounts.set(sender, pWords);
+            participantWordsTotal.set(sender, (participantWordsTotal.get(sender) ?? 0) + 1);
           }
         }
       }
@@ -243,6 +251,15 @@ export function computeStats(chat: ChatData): ChatStats {
     }
   }
 
+  // Pre-calculate document frequency for TF-IDF
+  const documentFrequency = new Map<string, number>();
+  const activeParticipantsCount = perParticipant.size;
+  for (const pWords of participantWordCounts.values()) {
+    for (const w of pWords.keys()) {
+      documentFrequency.set(w, (documentFrequency.get(w) ?? 0) + 1);
+    }
+  }
+
   const nonSystemTotal = messages.length - systemCount;
   const participants: ParticipantStat[] = Array.from(perParticipant.entries())
     .map(([name, v]) => {
@@ -260,6 +277,22 @@ export function computeStats(chat: ChatData): ChatStats {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
+      const pWordsMap = participantWordCounts.get(name) ?? new Map<string, number>();
+      const pTotalWords = participantWordsTotal.get(name) ?? 1;
+
+      const tfIdfScores: { word: string; score: number }[] = [];
+      for (const [w, count] of pWordsMap.entries()) {
+        const tf = count / pTotalWords;
+        const df = documentFrequency.get(w) ?? 1;
+        const idf = Math.log(1 + activeParticipantsCount / df);
+        tfIdfScores.push({ word: w, score: tf * idf });
+      }
+
+      const distinctiveWords = tfIdfScores
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)
+        .map((x) => x.word);
+
       return {
         name,
         count: v.count,
@@ -276,6 +309,7 @@ export function computeStats(chat: ChatData): ChatStats {
         typoCount,
         typoRate: v.words > 0 ? (typoCount / v.words) * 1000 : 0,
         topTypos,
+        distinctiveWords,
       };
     })
     .sort((a, b) => b.count - a.count);

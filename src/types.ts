@@ -62,6 +62,7 @@ export interface ParticipantStat {
   typoCount: number;
   typoRate: number;
   topTypos: { word: string; count: number }[];
+  distinctiveWords: string[];
 }
 
 export interface ChatStats {

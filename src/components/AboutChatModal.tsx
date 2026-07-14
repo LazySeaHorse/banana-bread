@@ -597,6 +597,23 @@ export function AboutChatModal({
                         </span>
                       </div>
                     </div>
+                    {p.distinctiveWords && p.distinctiveWords.length > 0 && (
+                      <div className="mt-2.5 border-t border-neutral-100/70 pt-2">
+                        <div className="text-[9px] font-semibold uppercase tracking-wider text-neutral-400 mb-1">
+                          Signature Vocabulary
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {p.distinctiveWords.map((w) => (
+                            <span
+                              key={w}
+                              className="bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-neutral-200/20"
+                            >
+                              {w}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {filteredBreakdown.length === 0 && (
