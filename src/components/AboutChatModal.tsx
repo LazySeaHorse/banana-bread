@@ -4,7 +4,7 @@ import type { ChatData } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { computeStats } from "@/lib/stats";
 import { formatFullDate, WEEKDAY_LABELS } from "@/lib/date";
-import { BUBBLE_THEMES } from "@/lib/colors";
+import { BUBBLE_THEMES, getHarmonicPalette } from "@/lib/colors";
 import { useChatStore } from "@/store/useChatStore";
 import { cn } from "@/utils/cn";
 
@@ -64,7 +64,13 @@ function formatSilenceDuration(ms: number): string {
   return `${Math.round(minutes)} minutes`;
 }
 
-function MonthlyTrendChart({ trend }: { trend: { month: string; count: number }[] }) {
+function MonthlyTrendChart({
+  trend,
+  theme,
+}: {
+  trend: { month: string; count: number }[];
+  theme: ChatData["theme"];
+}) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   if (trend.length === 0) return null;
@@ -101,13 +107,13 @@ function MonthlyTrendChart({ trend }: { trend: { month: string; count: number }[
         <div style={{ minWidth: Math.max(trend.length * 16, 320) }}>
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible">
             <defs>
-              <linearGradient id="chartBarGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#5B51D8" />
-                <stop offset="100%" stopColor="#E1306C" stopOpacity="0.4" />
+              <linearGradient id={`chartBarGrad-${theme.id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={theme.meFrom} />
+                <stop offset="100%" stopColor={theme.meTo} stopOpacity="0.4" />
               </linearGradient>
-              <linearGradient id="chartBarGradHover" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6E64EC" />
-                <stop offset="100%" stopColor="#F2417D" />
+              <linearGradient id={`chartBarGradHover-${theme.id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={theme.meFrom} />
+                <stop offset="100%" stopColor={theme.meTo} />
               </linearGradient>
             </defs>
 
@@ -154,7 +160,7 @@ function MonthlyTrendChart({ trend }: { trend: { month: string; count: number }[
                   height={Math.max(barHeight, 2)}
                   rx={Math.max(1, barWidth / 6)}
                   ry={Math.max(1, barWidth / 6)}
-                  fill={isHovered ? "url(#chartBarGradHover)" : "url(#chartBarGrad)"}
+                  fill={isHovered ? `url(#chartBarGradHover-${theme.id})` : `url(#chartBarGrad-${theme.id})`}
                   className="transition-all duration-150 cursor-pointer"
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
@@ -206,7 +212,17 @@ export function AboutChatModal({
   const setTheme = useChatStore((s) => s.setTheme);
   const setAIPersonas = useChatStore((s) => s.setAIPersonas);
   const removeChatEntirely = useChatStore((s) => s.removeChatEntirely);
-  const stats = useMemo(() => computeStats(chat), [chat]);
+  const stats = useMemo(() => computeStats(chat.messages, chat.me), [chat.messages, chat.me]);
+
+  const participantColors = useMemo(() => {
+    const names = chat.participants;
+    const palette = getHarmonicPalette(chat.theme, names.length);
+    const map: Record<string, string> = {};
+    names.forEach((name, idx) => {
+      map[name] = palette[idx % palette.length];
+    });
+    return map;
+  }, [chat.theme, chat.participants]);
   
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
 
@@ -359,7 +375,7 @@ export function AboutChatModal({
                   : "border-transparent text-neutral-400 hover:text-neutral-600"
               )}
             >
-              Deep Analytics 📊
+              Deep Analytics
             </button>
           </div>
         </div>
@@ -551,7 +567,7 @@ export function AboutChatModal({
                           {p.count.toLocaleString()} · {p.pct.toFixed(0)}%
                         </span>
                       </div>
-                      <Bar pct={p.pct} />
+                      <Bar pct={p.pct} color={participantColors[p.name]} />
                     </div>
                   </div>
                 ))}
@@ -750,8 +766,11 @@ export function AboutChatModal({
                           </div>
                           <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
-                              style={{ width: `${pct}%` }}
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: participantColors[s.name] || chat.theme.meFrom,
+                              }}
                             />
                           </div>
                         </div>
@@ -779,11 +798,12 @@ export function AboutChatModal({
                 {stats.weekdayHistogram.map((v, d) => (
                   <div key={d} className="flex flex-1 flex-col items-center gap-1">
                     <div
-                      className="w-full rounded-t bg-gradient-to-t from-[#2193b0] to-[#6dd5ed]"
+                      className="w-full rounded-t"
                       style={{
                         height: `${(v / maxWeekday) * 48}px`,
                         minHeight: v > 0 ? 3 : 1,
                         opacity: v > 0 ? 1 : 0.15,
+                        background: `linear-gradient(to top, ${chat.theme.meFrom}, ${chat.theme.meTo})`,
                       }}
                     />
                     <span className="text-[9px] text-neutral-400">
@@ -799,7 +819,7 @@ export function AboutChatModal({
               <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
                 Monthly Trend
               </h3>
-              <MonthlyTrendChart trend={stats.monthlyTrend} />
+              <MonthlyTrendChart trend={stats.monthlyTrend} theme={chat.theme} />
             </section>
 
             {/* emojis */}

@@ -14,7 +14,7 @@ import {
   removeChat,
   clearAllStorage as clearStorageLib,
 } from "@/lib/storage";
-import { defaultTheme } from "@/lib/colors";
+import { randomTheme } from "@/lib/colors";
 
 function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -117,7 +117,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
         lastTs: ts,
         createdAt: now,
         updatedAt: now,
-        theme: defaultTheme(),
+        theme: randomTheme(),
         aiPersonas: [],
         messages,
         reactions: {},

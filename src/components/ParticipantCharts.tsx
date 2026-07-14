@@ -17,6 +17,7 @@ import {
   Line,
 } from "recharts";
 import type { ChatStats, BubbleTheme } from "@/types";
+import { getHarmonicPalette } from "@/lib/colors";
 
 interface ChartProps {
   stats: ChatStats;
@@ -25,15 +26,7 @@ interface ChartProps {
 
 // Helper to generate colors for participants
 function getParticipantColors(participants: string[], theme: BubbleTheme) {
-  const baseColors = [
-    theme.meFrom,
-    theme.meTo,
-    "#10b981", // emerald-500
-    "#0ea5e9", // sky-500
-    "#f59e0b", // amber-500
-    "#8b5cf6", // violet-500
-    "#ec4899", // pink-500
-  ];
+  const baseColors = getHarmonicPalette(theme, participants.length);
 
   const colorMap: Record<string, { stroke: string; fill: string }> = {};
   participants.forEach((name, idx) => {

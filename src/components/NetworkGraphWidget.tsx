@@ -3,6 +3,7 @@ import cytoscape from "cytoscape";
 import { SlidersHorizontal, Settings2, RefreshCw } from "lucide-react";
 import type { ChatStats, BubbleTheme } from "@/types";
 import { cn } from "@/utils/cn";
+import { getHarmonicPalette } from "@/lib/colors";
 
 interface NetworkGraphWidgetProps {
   stats: ChatStats;
@@ -11,6 +12,17 @@ interface NetworkGraphWidgetProps {
 
 export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Generate participant colors based on theme
+  const participantColors = useMemo(() => {
+    const names = stats.participants.map((p) => p.name);
+    const palette = getHarmonicPalette(theme, names.length);
+    const map: Record<string, string> = {};
+    names.forEach((name, idx) => {
+      map[name] = palette[idx % palette.length];
+    });
+    return map;
+  }, [theme, stats.participants]);
   
   // 1. Interactive States
   const [layoutName, setLayoutName] = useState<"cose" | "concentric">("concentric");
@@ -78,6 +90,7 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
           id: p.name,
           label: p.name,
           size,
+          color: participantColors[p.name] || theme.meFrom,
         },
       });
     });
@@ -126,7 +139,7 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
         {
           selector: "node",
           style: {
-            "background-color": theme.meFrom || "#5B51D8",
+            "background-color": "data(color)",
             label: "data(label)",
             width: "data(size)",
             height: "data(size)",
@@ -187,7 +200,7 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
     return () => {
       cy.destroy();
     };
-  }, [renderedParticipants, renderedNames, minReplies, layoutName, theme, stats.replyMatrix]);
+  }, [renderedParticipants, renderedNames, minReplies, layoutName, theme, stats.replyMatrix, participantColors]);
 
   return (
     <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
