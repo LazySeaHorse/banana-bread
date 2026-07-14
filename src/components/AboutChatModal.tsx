@@ -11,6 +11,7 @@ import { cn } from "@/utils/cn";
 // Import new visualization widgets
 import { CalendarHeatmapWidget } from "@/components/CalendarHeatmapWidget";
 import { RadialActivityClock } from "@/components/RadialActivityClock";
+import { NetworkGraphWidget } from "@/components/NetworkGraphWidget";
 import {
   StackedAreaVolumeChart,
   ParticipantRadarChart,
@@ -899,6 +900,11 @@ export function AboutChatModal({
               theme={chat.theme}
               selectedParticipants={selectedAnalyticsParticipants.length > 0 ? selectedAnalyticsParticipants : top5}
             />
+
+            {/* 7. Interactive Network Graph */}
+            {stats.participants.length >= 2 && (
+              <NetworkGraphWidget stats={stats} theme={chat.theme} />
+            )}
           </div>
         )}
     </>

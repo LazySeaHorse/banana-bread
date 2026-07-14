@@ -100,6 +100,16 @@ export function computeStats(chat: ChatData): ChatStats {
   const sentimentScores = new Map<string, { totalScore: number; count: number }>();
   const monthlyParticipantSentiment = new Map<string, Map<string, { totalScore: number; count: number }>>();
 
+  const replyMatrix: Record<string, Record<string, number>> = {};
+  for (const p of chat.participants) {
+    replyMatrix[p] = {};
+    for (const other of chat.participants) {
+      if (p !== other) {
+        replyMatrix[p][other] = 0;
+      }
+    }
+  }
+
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
     const parts = p.toLowerCase().split(/[^a-z]+/);
@@ -251,6 +261,12 @@ export function computeStats(chat: ChatData): ChatStats {
         if (gap > 0 && gap < 24 * 3600 * 1000) {
           replyTimes.set(sender, (replyTimes.get(sender) ?? 0) + gap);
           replyCounts.set(sender, (replyCounts.get(sender) ?? 0) + 1);
+
+          // Reply matrix tracking
+          const target = lastNonSystemMsg.sender;
+          if (replyMatrix[sender] && replyMatrix[sender][target] !== undefined) {
+            replyMatrix[sender][target]++;
+          }
 
           // Monthly reply tracking
           if (!monthlyReplyTimes.has(monthKey)) {
@@ -509,5 +525,6 @@ export function computeStats(chat: ChatData): ChatStats {
     totalTypos: globalTotalTypos,
     topTypos,
     monthlySentimentSplit,
+    replyMatrix,
   };
 }

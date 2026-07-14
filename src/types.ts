@@ -92,6 +92,7 @@ export interface ChatStats {
   totalTypos: number;
   topTypos: { word: string; count: number }[];
   monthlySentimentSplit: { month: string; [participant: string]: number | string }[];
+  replyMatrix: Record<string, Record<string, number>>;
 }
 
 
