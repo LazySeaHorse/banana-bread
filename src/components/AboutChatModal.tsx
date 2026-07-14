@@ -228,7 +228,7 @@ export function AboutChatModal({
   const setTheme = useChatStore((s) => s.setTheme);
   const setAIPersonas = useChatStore((s) => s.setAIPersonas);
   const removeChatEntirely = useChatStore((s) => s.removeChatEntirely);
-  const stats = useMemo(() => computeStats(chat.messages, chat.me), [chat.messages, chat.me]);
+  const stats = useMemo(() => computeStats(chat), [chat]);
 
   const participantColors = useMemo(() => {
     const names = chat.participants;
@@ -1024,7 +1024,12 @@ export function AboutChatModal({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30 md:items-center md:justify-center">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30 md:items-center md:justify-center"
+    >
       <div className={cn(
         "flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl md:h-[88vh] md:rounded-2xl transition-all duration-300 ease-in-out",
         activeTab === "analytics" ? "md:max-w-3xl" : "md:max-w-md"

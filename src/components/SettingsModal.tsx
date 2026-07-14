@@ -52,7 +52,12 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const isKnownModel = modelOptions.includes(activeConfig.model);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30 md:items-center md:justify-center">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30 md:items-center md:justify-center"
+    >
       <div className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl md:h-auto md:max-h-[85vh] md:rounded-2xl">
         <div className="sticky top-0 flex items-center gap-3 border-b border-neutral-100 bg-white px-4 py-3">
           <button
