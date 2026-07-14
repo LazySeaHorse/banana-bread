@@ -96,7 +96,7 @@ export default function App() {
         <div
           className={cn(
             "h-full shrink-0 md:block",
-            activeChat ? "hidden md:block" : "w-full"
+            activeChat ? "hidden md:block" : "w-full md:w-[360px]"
           )}
           style={activeChat ? { width: `${sidebarWidth}px` } : undefined}
         >

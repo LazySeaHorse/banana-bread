@@ -42,7 +42,7 @@ export function MessageBubble({
 
   if (message.system) {
     return (
-      <div className="my-2 flex justify-center px-6">
+      <div className="flex justify-center px-6 py-2">
         <span className="rounded-full bg-black/5 px-3 py-1 text-center text-[11px] text-neutral-500">
           {message.text}
         </span>
@@ -76,11 +76,13 @@ export function MessageBubble({
         borderRadius,
       };
 
-  const marginTop = groupedWithPrev ? "mt-0.5" : "mt-2.5";
+  // Virtuoso measures the root item's content box, not its margins. Keep
+  // vertical message spacing inside that box so its size estimates stay exact.
+  const topSpacing = groupedWithPrev ? "pt-0.5" : "pt-2.5";
 
   if (message.deleted) {
     return (
-      <div className={cn("flex px-3", marginTop, mine ? "justify-end" : "justify-start")}>
+      <div className={cn("flex px-3", topSpacing, mine ? "justify-end" : "justify-start")}>
         <div className="rounded-2xl bg-black/5 px-3.5 py-2 text-[13px] italic text-neutral-400">
           This message was deleted
         </div>
@@ -93,7 +95,7 @@ export function MessageBubble({
 
   return (
     <div
-      className={cn("group relative flex px-3", marginTop, mine ? "justify-end" : "justify-start")}
+      className={cn("group relative flex px-3", topSpacing, mine ? "justify-end" : "justify-start")}
       onClick={() => setPinned((p) => !p)}
     >
       {!mine && (

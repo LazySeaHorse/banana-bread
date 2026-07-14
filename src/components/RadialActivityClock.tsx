@@ -73,7 +73,7 @@ export function RadialActivityClock({
       <div className="relative flex items-center justify-center">
         <svg
           viewBox={`0 0 ${size} ${size}`}
-          className="w-full max-w-[240px] overflow-visible select-none"
+          className="w-full overflow-visible select-none"
         >
           <defs>
             <linearGradient id="radialGrad" x1="0" y1="0" x2="0" y2="1">
