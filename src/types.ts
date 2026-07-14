@@ -96,6 +96,20 @@ export interface ChatStats {
   topTypos: { word: string; count: number }[];
   monthlySentimentSplit: { month: string; [participant: string]: number | string }[];
   replyMatrix: Record<string, Record<string, number>>;
+  activeThreads: ActiveThread[];
+}
+
+export interface ActiveThread {
+  id: string;
+  startTs: number;
+  endTs: number;
+  messageCount: number;
+  durationMinutes: number;
+  velocity: number; // messages per minute
+  participantCounts: Record<string, number>;
+  distinctiveWords: string[];
+  firstMessageId: number;
+  previewText: string;
 }
 
 

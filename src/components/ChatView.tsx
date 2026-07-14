@@ -48,6 +48,8 @@ export function ChatView({
   const deleteMessage = useChatStore((s) => s.deleteMessage);
   const toggleReaction = useChatStore((s) => s.toggleReaction);
   const addMessage = useChatStore((s) => s.addMessage);
+  const jumpTargetId = useChatStore((s) => s.jumpTargetId);
+  const setJumpTargetId = useChatStore((s) => s.setJumpTargetId);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<number | null>(null);
@@ -128,6 +130,13 @@ export function ChatView({
     });
     setTimeout(() => setHighlightId(null), 1800);
   };
+
+  useEffect(() => {
+    if (jumpTargetId !== null) {
+      handleJump(jumpTargetId);
+      setJumpTargetId(null);
+    }
+  }, [jumpTargetId, setJumpTargetId]);
 
   const isGroup = chat.participants.length > 2;
   const headerName = chat.title;

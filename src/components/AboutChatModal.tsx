@@ -25,6 +25,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { cn } from "@/utils/cn";
 
 // Import new visualization widgets
+import { ActiveThreadsWidget } from "@/components/ActiveThreadsWidget";
 import { CalendarHeatmapWidget } from "@/components/CalendarHeatmapWidget";
 import { RadialActivityClock } from "@/components/RadialActivityClock";
 import { NetworkGraphWidget } from "@/components/NetworkGraphWidget";
@@ -965,6 +966,13 @@ export function AboutChatModal({
                 </div>
               </div>
             )}
+
+            {/* Active Threads Widget */}
+            <ActiveThreadsWidget
+              threads={stats.activeThreads}
+              participantColors={participantColors}
+              onCloseModal={onClose}
+            />
 
             {/* 1. GitHub-style Calendar Heatmap */}
             <CalendarHeatmapWidget dailyActivity={stats.dailyActivity} theme={chat.theme} />

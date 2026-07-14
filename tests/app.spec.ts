@@ -62,15 +62,20 @@ test.describe("Banana Bread Chat App tests", () => {
     // Switch to Deep Analytics
     await page.locator("text=Deep Analytics").filter({ visible: true }).click();
     
-    // Verify analytics widgets are loaded (e.g. calendar heatmap or graphs)
+    // Verify analytics widgets are loaded (e.g. active threads, calendar heatmap or graphs)
+    await expect(page.locator("text=Active Threads").filter({ visible: true })).toBeVisible();
+    await expect(page.locator("text=budget").or(page.locator("text=server")).first()).toBeVisible();
     await expect(page.locator("text=Chat Heatmap").filter({ visible: true })).toBeVisible();
     await expect(page.locator("text=24-Hour Activity Clock").filter({ visible: true })).toBeVisible();
 
     // Take screenshot of desktop view with analytics
     await page.screenshot({ path: "tests/screenshots/desktop-analytics.png" });
 
-    // Close analytics
-    await page.locator(".sticky button:has(svg.lucide-x)").filter({ visible: true }).click();
+    // Test Jump to thread from list (closes modal and scrolls to the message)
+    await page.locator("button:has-text('Jump')").first().click();
+    
+    // The About modal should close automatically
+    await expect(page.locator("text=General & Setup").first()).toBeHidden();
   });
 
   test("Mobile view navigation and modal interaction", async ({ page, isMobile }) => {

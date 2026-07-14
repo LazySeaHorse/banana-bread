@@ -76,6 +76,8 @@ interface ChatStoreState {
   ) => void;
   removeChatEntirely: (chatId: string) => void;
   clearAllStorage: () => void;
+  jumpTargetId: number | null;
+  setJumpTargetId: (id: number | null) => void;
   setToast: (msg: string | null) => void;
   persist: (chatId: string) => void;
 }
@@ -86,6 +88,9 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
   activeChatId: null,
   importProgress: null,
   toast: null,
+  jumpTargetId: null,
+
+  setJumpTargetId: (id) => set({ jumpTargetId: id }),
 
   init: () => {
     set({ index: readIndex() });
