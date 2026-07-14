@@ -2,6 +2,48 @@ import type { ChatData, ChatStats, ParticipantStat, RawMessage } from "@/types";
 
 const EMOJI_RE = /(\p{Extended_Pictographic})/gu;
 
+const STOP_WORDS = new Set([
+  // English
+  "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", 
+  "yourself", "yover", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", 
+  "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", 
+  "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", 
+  "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", 
+  "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", 
+  "with", "about", "against", "between", "into", "through", "during", "before", "after", 
+  "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", 
+  "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", 
+  "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", 
+  "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", 
+  "should", "now", "d", "ll", "m", "o", "re", "ve", "y", "ain", "aren", "couldn", "didn", 
+  "shouldn", "wouldn", "won", "wasn", "weren", "was", "were", "went", "got", "get", "go",
+  "doing", "done", "did", "does", "would", "could", "should", "want", "like", "think", "know",
+  "tell", "say", "said", "has", "have", "had", "take", "make", "come", "came", "see", "saw",
+  "give", "gave", "find", "found", "look", "use", "used", "work", "people", "way", "new",
+  "first", "last", "one", "two", "three", "also", "well", "even", "back", "still", "only",
+  "really", "much", "good", "great", "nice", "bad", "never", "always", "sometimes", "often",
+  "that's", "it's", "don't", "can't", "cant", "dont", "im", "i'm", "you're", "we're", "they're",
+  "ive", "i've", "youve", "you've", "weve", "we've", "theyve", "they've", "id", "i'd", "youd",
+  "you'd", "wed", "we'd", "theyd", "they'd", "ill", "i'll", "youll", "you'll", "well", "we'll",
+  "theyll", "they'll", "u", "ur", "r", "c", "ok", "okay", "yeah", "yes", "no", "ya", "deleted",
+  // Spanish
+  "el", "la", "los", "les", "las", "un", "una", "unos", "unas", "y", "o", "pero", "si", "sí", 
+  "no", "de", "en", "a", "que", "qué", "para", "por", "con", "del", "al", "lo", "como", "cómo", 
+  "mas", "más", "este", "esta", "esto", "estos", "estas", "ese", "esa", "eso", "esos", "esas", 
+  "mi", "mis", "tu", "tus", "tú", "su", "sus", "yo", "me", "te", "se", "nos", "os", "le", "les", 
+  "ya", "hay", "tiene", "tengo", "tienen", "hacer", "hecho", "ver", "ir", "fue", "fui", "fuimos", 
+  "fueron", "son", "es", "soy", "eres", "somos", "sois", "eran", "era", "e", "u", "está", "están",
+  "estando", "hace", "hizo", "bueno", "bien", "todo", "todos", "toda", "todas", "otro", "otros",
+  "otra", "otras", "muy", "mucho", "muchos", "mucha", "muchas", "solo", "sólo", "tan", "así",
+  "entonces", "luego", "después", "antes", "aquí", "allí", "allá", "donde", "dónde", "cuando",
+  "cuándo", "quien", "quién", "cual", "cuál", "nada", "algo", "alguien", "nadie", "ninguno",
+  "ninguna", "alguno", "alguna", "algunos", "algunas", "mismo", "misma", "mismos", "mismas",
+  "contra", "desde", "hasta", "durante", "entre", "hacia", "mediante", "sobre", "tras",
+  // WhatsApp export artifacts
+  "omitted", "image", "video", "audio", "sticker", "document", "contact", "location", "gif",
+  "message", "was"
+]);
+
 export function computeStats(chat: ChatData): ChatStats {
   const messages = chat.messages;
   const perParticipant = new Map<string, { count: number; words: number; media: number }>();
@@ -16,6 +58,13 @@ export function computeStats(chat: ChatData): ChatStats {
   const replyCounts = new Map<string, number>();
   const startersCounts = new Map<string, number>();
   const monthlyCounts = new Map<string, number>();
+
+  // New map-based metrics
+  const emojiMessageCounts = new Map<string, number>();
+  const questionMessageCounts = new Map<string, number>();
+  const monthlyParticipantCounts = new Map<string, Map<string, number>>();
+  const monthlyReplyTimes = new Map<string, Map<string, { totalMs: number; count: number }>>();
+  const wordCounts = new Map<string, number>();
 
   let totalWords = 0;
   let mediaCount = 0;
@@ -37,6 +86,7 @@ export function computeStats(chat: ChatData): ChatStats {
     const sender = m.sender ?? "Unknown";
     const entry = perParticipant.get(sender) ?? { count: 0, words: 0, media: 0 };
     entry.count++;
+    
     if (m.isMedia) {
       entry.media++;
       mediaCount++;
@@ -50,6 +100,19 @@ export function computeStats(chat: ChatData): ChatStats {
       const emojis = m.text.match(EMOJI_RE);
       if (emojis) {
         for (const e of emojis) emojiCounts.set(e, (emojiCounts.get(e) ?? 0) + 1);
+      }
+
+      // Word frequencies (excluding stop words)
+      if (m.text) {
+        const cleanedText = m.text.toLowerCase();
+        // Split by non-alphanumeric chars (including support for common Spanish accented characters)
+        const tokens = cleanedText.split(/[^a-z0-9áéíóúñü']+/);
+        for (const w of tokens) {
+          const cleanW = w.replace(/^'+|'+$/g, "");
+          if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
+            wordCounts.set(cleanW, (wordCounts.get(cleanW) ?? 0) + 1);
+          }
+        }
       }
     }
     perParticipant.set(sender, entry);
@@ -68,6 +131,13 @@ export function computeStats(chat: ChatData): ChatStats {
       const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       monthlyCounts.set(monthKey, (monthlyCounts.get(monthKey) ?? 0) + 1);
 
+      // Stacked Monthly Messages Split
+      if (!monthlyParticipantCounts.has(monthKey)) {
+        monthlyParticipantCounts.set(monthKey, new Map());
+      }
+      const pCounts = monthlyParticipantCounts.get(monthKey)!;
+      pCounts.set(sender, (pCounts.get(sender) ?? 0) + 1);
+
       // Night Owl Score: message sent between 00:00 and 04:59 (inclusive)
       const hour = d.getHours();
       if (hour >= 0 && hour < 5) {
@@ -80,12 +150,33 @@ export function computeStats(chat: ChatData): ChatStats {
       }
       lastMsgTs = m.ts;
 
-      // Reply Times: sender switches, gap < 24 hours
+      // Emojis per participant rate
+      const emojis = m.text ? m.text.match(EMOJI_RE) : null;
+      if (emojis && emojis.length > 0) {
+        emojiMessageCounts.set(sender, (emojiMessageCounts.get(sender) ?? 0) + 1);
+      }
+
+      // Questions per participant rate
+      if (m.text && m.text.includes("?")) {
+        questionMessageCounts.set(sender, (questionMessageCounts.get(sender) ?? 0) + 1);
+      }
+
+      // Reply Times & Monthly Reply Times
       if (lastNonSystemMsg && lastNonSystemMsg.sender && lastNonSystemMsg.sender !== sender) {
         const gap = m.ts - lastNonSystemMsg.ts;
         if (gap > 0 && gap < 24 * 3600 * 1000) {
           replyTimes.set(sender, (replyTimes.get(sender) ?? 0) + gap);
           replyCounts.set(sender, (replyCounts.get(sender) ?? 0) + 1);
+
+          // Monthly reply tracking
+          if (!monthlyReplyTimes.has(monthKey)) {
+            monthlyReplyTimes.set(monthKey, new Map());
+          }
+          const mRep = monthlyReplyTimes.get(monthKey)!;
+          const repEntry = mRep.get(sender) ?? { totalMs: 0, count: 0 };
+          repEntry.totalMs += gap;
+          repEntry.count += 1;
+          mRep.set(sender, repEntry);
         }
       }
 
@@ -113,6 +204,8 @@ export function computeStats(chat: ChatData): ChatStats {
       const nightCount = nightOwlCounts.get(name) ?? 0;
       const repTime = replyTimes.get(name) ?? 0;
       const repCount = replyCounts.get(name) ?? 0;
+      const emojiMsgCount = emojiMessageCounts.get(name) ?? 0;
+      const questionMsgCount = questionMessageCounts.get(name) ?? 0;
 
       return {
         name,
@@ -124,6 +217,9 @@ export function computeStats(chat: ChatData): ChatStats {
         doubleTextRate: v.count > 0 ? (doubleCount / v.count) * 100 : 0,
         nightOwlScore: v.count > 0 ? (nightCount / v.count) * 100 : 0,
         avgReplyMinutes: repCount > 0 ? (repTime / repCount) / 60000 : 0,
+        emojiRate: v.count > 0 ? (emojiMsgCount / v.count) * 100 : 0,
+        questionRate: v.count > 0 ? (questionMsgCount / v.count) * 100 : 0,
+        mediaRate: v.count > 0 ? (v.media / v.count) * 100 : 0,
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -140,8 +236,11 @@ export function computeStats(chat: ChatData): ChatStats {
     if (!mostActiveDay || count > mostActiveDay.count) mostActiveDay = { date, count };
   }
 
-  // Monthly Trend gap filling
+  // Monthly Trend & splits gap filling
   const monthlyTrend: { month: string; count: number }[] = [];
+  const monthlyTrendSplit: { month: string; [participant: string]: number | string }[] = [];
+  const replyTimeTrend: { month: string; [participant: string]: number | null | string }[] = [];
+
   if (firstTs && lastTs) {
     const firstDate = new Date(firstTs);
     const lastDate = new Date(lastTs);
@@ -155,7 +254,29 @@ export function computeStats(chat: ChatData): ChatStats {
       const count = monthlyCounts.get(key) ?? 0;
       const dateObj = new Date(curY, curM, 1);
       const label = dateObj.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+      
       monthlyTrend.push({ month: label, count });
+
+      // Build split count entry
+      const pCounts = monthlyParticipantCounts.get(key);
+      const splitEntry: { month: string; [participant: string]: number | string } = { month: label };
+      for (const p of chat.participants) {
+        splitEntry[p] = pCounts ? (pCounts.get(p) ?? 0) : 0;
+      }
+      monthlyTrendSplit.push(splitEntry);
+
+      // Build reply trend entry
+      const mRep = monthlyReplyTimes.get(key);
+      const repEntry: { month: string; [participant: string]: number | null | string } = { month: label };
+      for (const p of chat.participants) {
+        if (mRep && mRep.has(p)) {
+          const entry = mRep.get(p)!;
+          repEntry[p] = Number((entry.totalMs / entry.count / 60000).toFixed(1));
+        } else {
+          repEntry[p] = null;
+        }
+      }
+      replyTimeTrend.push(repEntry);
 
       curM++;
       if (curM > 11) {
@@ -193,6 +314,32 @@ export function computeStats(chat: ChatData): ChatStats {
     prevIdx = idx;
   }
 
+  // Daily activity for calendar heatmap
+  const dailyActivity: { date: string; count: number }[] = [];
+  if (firstTs && lastTs) {
+    const firstDate = new Date(firstTs);
+    const lastDate = new Date(lastTs);
+    // Normalize date cursors
+    const curDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate());
+    const endDate = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+
+    while (curDate <= endDate) {
+      const year = curDate.getFullYear();
+      const month = String(curDate.getMonth() + 1).padStart(2, "0");
+      const day = String(curDate.getDate()).padStart(2, "0");
+      const key = `${year}-${month}-${day}`;
+      const count = dayCounts.get(key) ?? 0;
+      dailyActivity.push({ date: key, count });
+      curDate.setDate(curDate.getDate() + 1);
+    }
+  }
+
+  // Tokenized word frequencies for word cloud
+  const wordCloudWords = Array.from(wordCounts.entries())
+    .map(([text, value]) => ({ text, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 80);
+
   return {
     totalMessages: nonSystemTotal,
     totalWords,
@@ -212,5 +359,9 @@ export function computeStats(chat: ChatData): ChatStats {
     conversationStarters,
     longestSilenceMs,
     longestStreakDays,
+    dailyActivity,
+    monthlyTrendSplit,
+    replyTimeTrend,
+    wordCloudWords,
   };
 }

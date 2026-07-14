@@ -56,6 +56,9 @@ export interface ParticipantStat {
   doubleTextRate: number;
   nightOwlScore: number;
   avgReplyMinutes: number;
+  emojiRate: number;
+  questionRate: number;
+  mediaRate: number;
 }
 
 export interface ChatStats {
@@ -77,7 +80,12 @@ export interface ChatStats {
   conversationStarters: { name: string; count: number }[];
   longestSilenceMs: number;
   longestStreakDays: number;
+  dailyActivity: { date: string; count: number }[];
+  monthlyTrendSplit: { month: string; [participant: string]: number | string }[];
+  replyTimeTrend: { month: string; [participant: string]: number | null | string }[];
+  wordCloudWords: { text: string; value: number }[];
 }
+
 
 export interface ParseProgress {
   processed: number;
