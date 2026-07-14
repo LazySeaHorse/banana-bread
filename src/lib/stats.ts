@@ -143,6 +143,7 @@ export function computeStats(chat: ChatData): ChatStats {
 
   const ghostCounts = new Map<string, number>();
   const participantHourHistograms = new Map<string, number[]>();
+  const participantActiveDaysHours = new Map<string, Set<string>>();
 
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
@@ -272,10 +273,11 @@ export function computeStats(chat: ChatData): ChatStats {
         nightOwlCounts.set(sender, (nightOwlCounts.get(sender) ?? 0) + 1);
       }
 
-      // Track participant hour histogram
-      const pHist = participantHourHistograms.get(sender) ?? new Array(24).fill(0);
-      pHist[hour]++;
-      participantHourHistograms.set(sender, pHist);
+      // Track participant active days/hours
+      if (!participantActiveDaysHours.has(sender)) {
+        participantActiveDaysHours.set(sender, new Set<string>());
+      }
+      participantActiveDaysHours.get(sender)!.add(`${dayKey}_${hour}`);
 
       // Conversation Starters & Ghosting tracking
       if (lastMsgTs === 0 || (m.ts - lastMsgTs > 6 * 3600 * 1000)) {
@@ -338,6 +340,16 @@ export function computeStats(chat: ChatData): ChatStats {
       lastTsForSilence = m.ts;
       lastNonSystemMsg = m;
     }
+  }
+
+  // Build hourly histograms from unique active days/hours to disregard outlier spam nights
+  for (const [name, activeSet] of participantActiveDaysHours.entries()) {
+    const pHist = new Array(24).fill(0);
+    for (const key of activeSet) {
+      const hr = parseInt(key.split("_")[1], 10);
+      pHist[hr]++;
+    }
+    participantHourHistograms.set(name, pHist);
   }
 
   // Pre-calculate document frequency for TF-IDF
