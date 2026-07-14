@@ -429,9 +429,19 @@ export function AboutChatModal({
             </div>
             {/* Who am I */}
             <section className="border-b border-neutral-100 px-4 py-4">
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                Who are you?
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Who are you?
+                </h3>
+                {filteredWhoAreYou.length > 5 && (
+                  <button
+                    onClick={() => setShowAllWhoAreYou(!showAllWhoAreYou)}
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                  >
+                    {showAllWhoAreYou ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
               <div className="flex flex-col gap-1">
                 {visibleWhoAreYou.map((p) => (
                   <button
@@ -457,14 +467,6 @@ export function AboutChatModal({
                   <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
                 )}
               </div>
-              {filteredWhoAreYou.length > 5 && (
-                <button
-                  onClick={() => setShowAllWhoAreYou(!showAllWhoAreYou)}
-                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
-                >
-                  {showAllWhoAreYou ? "Show less" : `Show more (+${filteredWhoAreYou.length - 5})`}
-                </button>
-              )}
             </section>
 
             {/* AI personas */}
@@ -473,12 +475,25 @@ export function AboutChatModal({
                 <h3 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
                   <Bot size={13} /> AI-controlled
                 </h3>
-                <button
-                  onClick={toggleAll}
-                  className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
-                >
-                  {allSelected ? "Select none" : "Select all"}
-                </button>
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
+                  <button
+                    onClick={toggleAll}
+                    className="hover:text-neutral-800 font-medium"
+                  >
+                    {allSelected ? "Select none" : "Select all"}
+                  </button>
+                  {filteredAI.length > 5 && (
+                    <>
+                      <span className="text-neutral-300">|</span>
+                      <button
+                        onClick={() => setShowAllAI(!showAllAI)}
+                        className="hover:text-neutral-800"
+                      >
+                        {showAllAI ? "Show less" : "Show more"}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               <p className="mb-2 text-xs text-neutral-400 leading-snug">
                 Pick which participants the AI should write messages as. Configure
@@ -512,14 +527,6 @@ export function AboutChatModal({
                   <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
                 )}
               </div>
-              {filteredAI.length > 5 && (
-                <button
-                  onClick={() => setShowAllAI(!showAllAI)}
-                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
-                >
-                  {showAllAI ? "Show less" : `Show more (+${filteredAI.length - 5})`}
-                </button>
-              )}
             </section>
 
             {/* Bubble Theme */}
@@ -568,9 +575,19 @@ export function AboutChatModal({
 
             {/* Messages by Participant */}
             <section className="border-b border-neutral-100 px-4 py-4">
-              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                Messages by participant
-              </h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Messages by participant
+                </h3>
+                {filteredMessages.length > 5 && (
+                  <button
+                    onClick={() => setShowAllMessages(!showAllMessages)}
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                  >
+                    {showAllMessages ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
               <div className="flex flex-col gap-3">
                 {visibleMessages.map((p) => (
                   <div key={p.name} className="flex items-center gap-2">
@@ -592,21 +609,23 @@ export function AboutChatModal({
                   <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
                 )}
               </div>
-              {filteredMessages.length > 5 && (
-                <button
-                  onClick={() => setShowAllMessages(!showAllMessages)}
-                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
-                >
-                  {showAllMessages ? "Show less" : `Show more (+${filteredMessages.length - 5})`}
-                </button>
-              )}
             </section>
 
             {/* Participant breakdown */}
             <section className="border-b border-neutral-100 px-4 py-4">
-              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                Participant Breakdown
-              </h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Participant Breakdown
+                </h3>
+                {filteredBreakdown.length > 5 && (
+                  <button
+                    onClick={() => setShowAllBreakdown(!showAllBreakdown)}
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                  >
+                    {showAllBreakdown ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
               <div className="flex flex-col gap-3">
                 {visibleBreakdown.map((p) => (
                   <div
@@ -707,21 +726,23 @@ export function AboutChatModal({
                   <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
                 )}
               </div>
-              {filteredBreakdown.length > 5 && (
-                <button
-                  onClick={() => setShowAllBreakdown(!showAllBreakdown)}
-                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
-                >
-                  {showAllBreakdown ? "Show less" : `Show more (+${filteredBreakdown.length - 5})`}
-                </button>
-              )}
             </section>
 
             {/* Spelling & Typos */}
             <section className="border-b border-neutral-100 px-4 py-4">
-              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400 flex items-center gap-1.5">
-                <AlertTriangle size={13} className="text-amber-500" /> Spelling & Typos
-              </h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 flex items-center gap-1.5">
+                  <AlertTriangle size={13} className="text-amber-500" /> Spelling & Typos
+                </h3>
+                {filteredTypos.length > 5 && (
+                  <button
+                    onClick={() => setShowAllTypos(!showAllTypos)}
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                  >
+                    {showAllTypos ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
               <p className="mb-2.5 text-xs text-neutral-400 leading-snug">
                 Typos per 1,000 words (worst spellers first).
               </p>
@@ -760,21 +781,23 @@ export function AboutChatModal({
                   <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
                 )}
               </div>
-              {filteredTypos.length > 5 && (
-                <button
-                  onClick={() => setShowAllTypos(!showAllTypos)}
-                  className="mt-2.5 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
-                >
-                  {showAllTypos ? "Show less" : `Show more (+${filteredTypos.length - 5})`}
-                </button>
-              )}
             </section>
 
             {/* Conversation Starters */}
             <section className="border-b border-neutral-100 px-4 py-4">
-              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                Conversation Starters
-              </h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Conversation Starters
+                </h3>
+                {filteredStarters.length > 5 && (
+                  <button
+                    onClick={() => setShowAllStarters(!showAllStarters)}
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                  >
+                    {showAllStarters ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
               <p className="mb-2.5 text-xs text-neutral-400 leading-snug">
                 Who initiates discussions after at least 6 hours of silence.
               </p>
@@ -817,14 +840,6 @@ export function AboutChatModal({
                   })
                 )}
               </div>
-              {filteredStarters.length > 5 && (
-                <button
-                  onClick={() => setShowAllStarters(!showAllStarters)}
-                  className="mt-3 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
-                >
-                  {showAllStarters ? "Show less" : `Show more (+${filteredStarters.length - 5})`}
-                </button>
-              )}
             </section>
 
             {/* Weekday Histogram */}
