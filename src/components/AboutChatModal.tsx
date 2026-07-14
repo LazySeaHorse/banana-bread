@@ -216,6 +216,7 @@ export function AboutChatModal({
   const [showAllMessages, setShowAllMessages] = useState(false);
   const [showAllBreakdown, setShowAllBreakdown] = useState(false);
   const [showAllStarters, setShowAllStarters] = useState(false);
+  const [showAllTypos, setShowAllTypos] = useState(false);
 
   const [lastChatId, setLastChatId] = useState(chat.id);
   const [selectedAnalyticsParticipants, setSelectedAnalyticsParticipants] = useState<string[]>([]);
@@ -292,6 +293,18 @@ export function AboutChatModal({
   }, [stats.conversationStarters, searchQuery]);
 
   const visibleStarters = showAllStarters ? filteredStarters : filteredStarters.slice(0, 5);
+
+  const sortedByTypoRate = useMemo(() => {
+    return [...stats.participants].sort((a, b) => b.typoRate - a.typoRate);
+  }, [stats.participants]);
+
+  const filteredTypos = useMemo(() => {
+    return sortedByTypoRate.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [sortedByTypoRate, searchQuery]);
+
+  const visibleTypos = showAllTypos ? filteredTypos : filteredTypos.slice(0, 5);
 
   const aiPersonas = chat.aiPersonas ?? [];
   const allSelected =
@@ -656,10 +669,10 @@ export function AboutChatModal({
                 Spelling & Typos 🚨
               </h3>
               <p className="mb-2.5 text-xs text-neutral-400 leading-snug">
-                Typos per 1,000 words. (Analyzed for English).
+                Typos per 1,000 words (worst spellers first).
               </p>
               <div className="flex flex-col gap-3">
-                {stats.participants.map((p) => {
+                {visibleTypos.map((p) => {
                   const maxRate = Math.max(...stats.participants.map((x) => x.typoRate), 1);
                   const barPct = (p.typoRate / maxRate) * 100;
                   return (
@@ -689,7 +702,18 @@ export function AboutChatModal({
                     </div>
                   );
                 })}
+                {filteredTypos.length === 0 && (
+                  <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
+                )}
               </div>
+              {filteredTypos.length > 5 && (
+                <button
+                  onClick={() => setShowAllTypos(!showAllTypos)}
+                  className="mt-2.5 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
+                >
+                  {showAllTypos ? "Show less" : `Show more (+${filteredTypos.length - 5})`}
+                </button>
+              )}
             </section>
 
             {/* Conversation Starters */}
