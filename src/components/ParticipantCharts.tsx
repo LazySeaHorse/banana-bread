@@ -76,9 +76,16 @@ function CustomChartTooltip({ active, payload, label, suffix = "" }: any) {
   return null;
 }
 
-export function StackedAreaVolumeChart({ stats, theme }: ChartProps) {
-  const participants = useMemo(() => stats.participants.map((p) => p.name), [stats]);
-  const colors = useMemo(() => getParticipantColors(participants, theme), [participants, theme]);
+export function StackedAreaVolumeChart({
+  stats,
+  theme,
+  selectedParticipants,
+}: ChartProps & { selectedParticipants: string[] }) {
+  const participants = useMemo(() => {
+    const all = stats.participants.map((p) => p.name);
+    return all.filter((p) => selectedParticipants.includes(p));
+  }, [stats, selectedParticipants]);
+  const colors = useMemo(() => getParticipantColors(stats.participants.map((p) => p.name), theme), [stats, theme]);
 
   if (stats.monthlyTrendSplit.length === 0) {
     return (
@@ -141,14 +148,22 @@ export function StackedAreaVolumeChart({ stats, theme }: ChartProps) {
   );
 }
 
-export function ParticipantRadarChart({ stats, theme }: ChartProps) {
+export function ParticipantRadarChart({
+  stats,
+  theme,
+  selectedParticipants,
+}: ChartProps & { selectedParticipants: string[] }) {
   const colorMap = useMemo(
     () => getParticipantColors(stats.participants.map((p) => p.name), theme),
     [stats, theme]
   );
 
+  const filteredParticipants = useMemo(() => {
+    return stats.participants.filter((p) => selectedParticipants.includes(p.name));
+  }, [stats, selectedParticipants]);
+
   const radarData = useMemo(() => {
-    const parts = stats.participants;
+    const parts = filteredParticipants;
     if (parts.length === 0) return [];
 
     // Calculate maximums for normalization
@@ -203,7 +218,7 @@ export function ParticipantRadarChart({ stats, theme }: ChartProps) {
             <PolarGrid stroke="#e5e5e5" />
             <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: "#737373" }} />
             <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-            {stats.participants.map((p) => (
+            {filteredParticipants.map((p) => (
               <Radar
                 key={p.name}
                 name={p.name}
@@ -226,9 +241,16 @@ export function ParticipantRadarChart({ stats, theme }: ChartProps) {
   );
 }
 
-export function ReplyTimeTrendChart({ stats, theme }: ChartProps) {
-  const participants = useMemo(() => stats.participants.map((p) => p.name), [stats]);
-  const colors = useMemo(() => getParticipantColors(participants, theme), [participants, theme]);
+export function ReplyTimeTrendChart({
+  stats,
+  theme,
+  selectedParticipants,
+}: ChartProps & { selectedParticipants: string[] }) {
+  const participants = useMemo(() => {
+    const all = stats.participants.map((p) => p.name);
+    return all.filter((p) => selectedParticipants.includes(p));
+  }, [stats, selectedParticipants]);
+  const colors = useMemo(() => getParticipantColors(stats.participants.map((p) => p.name), theme), [stats, theme]);
 
   if (stats.replyTimeTrend.length === 0) {
     return (

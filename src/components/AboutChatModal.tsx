@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { X, Check, Trash2, Bot } from "lucide-react";
 import type { ChatData } from "@/types";
 import { Avatar } from "@/components/Avatar";
@@ -208,6 +208,89 @@ export function AboutChatModal({
   
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAllWhoAreYou, setShowAllWhoAreYou] = useState(false);
+  const [showAllAI, setShowAllAI] = useState(false);
+  const [showAllMessages, setShowAllMessages] = useState(false);
+  const [showAllBreakdown, setShowAllBreakdown] = useState(false);
+  const [showAllStarters, setShowAllStarters] = useState(false);
+
+  const [lastChatId, setLastChatId] = useState(chat.id);
+  const [selectedAnalyticsParticipants, setSelectedAnalyticsParticipants] = useState<string[]>([]);
+
+  if (chat.id !== lastChatId) {
+    setLastChatId(chat.id);
+    setSelectedAnalyticsParticipants([]);
+  }
+
+  const top5 = useMemo(() => stats.participants.slice(0, 5).map((p) => p.name), [stats]);
+
+  useEffect(() => {
+    if (selectedAnalyticsParticipants.length === 0 && top5.length > 0) {
+      setSelectedAnalyticsParticipants(top5);
+    }
+  }, [top5, selectedAnalyticsParticipants.length]);
+
+  const sortedParticipants = useMemo(() => {
+    const activeNames = stats.participants.map((p) => p.name);
+    const activeSet = new Set(activeNames);
+    const inactiveNames = chat.participants.filter((p) => !activeSet.has(p)).sort();
+    return [...activeNames, ...inactiveNames];
+  }, [chat.participants, stats.participants]);
+
+  const handleToggleAnalyticsParticipant = (name: string) => {
+    setSelectedAnalyticsParticipants((prev) => {
+      const activeList = prev.length > 0 ? prev : top5;
+      if (activeList.includes(name)) {
+        if (activeList.length <= 1) return activeList;
+        return activeList.filter((x) => x !== name);
+      } else {
+        if (activeList.length >= 5) return activeList;
+        return [...activeList, name];
+      }
+    });
+  };
+
+  const filteredWhoAreYou = useMemo(() => {
+    return sortedParticipants.filter((p) =>
+      p.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [sortedParticipants, searchQuery]);
+
+  const visibleWhoAreYou = showAllWhoAreYou ? filteredWhoAreYou : filteredWhoAreYou.slice(0, 5);
+
+  const filteredAI = useMemo(() => {
+    return sortedParticipants.filter((p) =>
+      p.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [sortedParticipants, searchQuery]);
+
+  const visibleAI = showAllAI ? filteredAI : filteredAI.slice(0, 5);
+
+  const filteredMessages = useMemo(() => {
+    return stats.participants.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [stats.participants, searchQuery]);
+
+  const visibleMessages = showAllMessages ? filteredMessages : filteredMessages.slice(0, 5);
+
+  const filteredBreakdown = useMemo(() => {
+    return stats.participants.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [stats.participants, searchQuery]);
+
+  const visibleBreakdown = showAllBreakdown ? filteredBreakdown : filteredBreakdown.slice(0, 5);
+
+  const filteredStarters = useMemo(() => {
+    return stats.conversationStarters.filter((s) =>
+      s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [stats.conversationStarters, searchQuery]);
+
+  const visibleStarters = showAllStarters ? filteredStarters : filteredStarters.slice(0, 5);
+
   const aiPersonas = chat.aiPersonas ?? [];
   const allSelected =
     chat.participants.length > 0 &&
@@ -278,13 +361,31 @@ export function AboutChatModal({
 
         {activeTab === "overview" ? (
           <>
+            {/* Search/filter input */}
+            <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-2.5 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Search/filter participants..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-800 outline-none focus:border-neutral-400 placeholder:text-neutral-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
             {/* Who am I */}
             <section className="border-b border-neutral-100 px-4 py-4">
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
                 Who are you?
               </h3>
               <div className="flex flex-col gap-1">
-                {chat.participants.map((p) => (
+                {visibleWhoAreYou.map((p) => (
                   <button
                     key={p}
                     onClick={() => setMe(chat.id, chat.me === p ? null : p)}
@@ -304,7 +405,18 @@ export function AboutChatModal({
                     )}
                   </button>
                 ))}
+                {filteredWhoAreYou.length === 0 && (
+                  <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
+                )}
               </div>
+              {filteredWhoAreYou.length > 5 && (
+                <button
+                  onClick={() => setShowAllWhoAreYou(!showAllWhoAreYou)}
+                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
+                >
+                  {showAllWhoAreYou ? "Show less" : `Show more (+${filteredWhoAreYou.length - 5})`}
+                </button>
+              )}
             </section>
 
             {/* AI personas */}
@@ -325,7 +437,7 @@ export function AboutChatModal({
                 your API key and model in Settings.
               </p>
               <div className="flex flex-col gap-1">
-                {chat.participants.map((p) => {
+                {visibleAI.map((p) => {
                   const isAI = aiPersonas.includes(p);
                   return (
                     <button
@@ -348,7 +460,18 @@ export function AboutChatModal({
                     </button>
                   );
                 })}
+                {filteredAI.length === 0 && (
+                  <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
+                )}
               </div>
+              {filteredAI.length > 5 && (
+                <button
+                  onClick={() => setShowAllAI(!showAllAI)}
+                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
+                >
+                  {showAllAI ? "Show less" : `Show more (+${filteredAI.length - 5})`}
+                </button>
+              )}
             </section>
 
             {/* Bubble Theme */}
@@ -401,7 +524,7 @@ export function AboutChatModal({
                 Messages by participant
               </h3>
               <div className="flex flex-col gap-3">
-                {stats.participants.map((p) => (
+                {visibleMessages.map((p) => (
                   <div key={p.name} className="flex items-center gap-2">
                     <Avatar name={p.name} size={26} />
                     <div className="min-w-0 flex-1">
@@ -417,7 +540,18 @@ export function AboutChatModal({
                     </div>
                   </div>
                 ))}
+                {filteredMessages.length === 0 && (
+                  <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
+                )}
               </div>
+              {filteredMessages.length > 5 && (
+                <button
+                  onClick={() => setShowAllMessages(!showAllMessages)}
+                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
+                >
+                  {showAllMessages ? "Show less" : `Show more (+${filteredMessages.length - 5})`}
+                </button>
+              )}
             </section>
 
             {/* Participant breakdown */}
@@ -426,7 +560,7 @@ export function AboutChatModal({
                 Participant Breakdown
               </h3>
               <div className="flex flex-col gap-3">
-                {stats.participants.map((p) => (
+                {visibleBreakdown.map((p) => (
                   <div
                     key={p.name}
                     className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-3 flex flex-col gap-2"
@@ -465,7 +599,18 @@ export function AboutChatModal({
                     </div>
                   </div>
                 ))}
+                {filteredBreakdown.length === 0 && (
+                  <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
+                )}
               </div>
+              {filteredBreakdown.length > 5 && (
+                <button
+                  onClick={() => setShowAllBreakdown(!showAllBreakdown)}
+                  className="mt-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
+                >
+                  {showAllBreakdown ? "Show less" : `Show more (+${filteredBreakdown.length - 5})`}
+                </button>
+              )}
             </section>
 
             {/* Conversation Starters */}
@@ -477,12 +622,12 @@ export function AboutChatModal({
                 Who initiates discussions after at least 6 hours of silence.
               </p>
               <div className="flex flex-col gap-2.5">
-                {stats.conversationStarters.length === 0 ? (
-                  <div className="text-xs text-neutral-400 italic">
-                    No conversation starters detected.
+                {visibleStarters.length === 0 ? (
+                  <div className="text-xs text-neutral-400 italic p-2">
+                    {filteredStarters.length === 0 && searchQuery ? "No participants found" : "No conversation starters detected."}
                   </div>
                 ) : (
-                  stats.conversationStarters.map((s) => {
+                  visibleStarters.map((s) => {
                     const maxStarter = Math.max(
                       ...stats.conversationStarters.map((x) => x.count),
                       1,
@@ -512,6 +657,14 @@ export function AboutChatModal({
                   })
                 )}
               </div>
+              {filteredStarters.length > 5 && (
+                <button
+                  onClick={() => setShowAllStarters(!showAllStarters)}
+                  className="mt-3 text-xs font-semibold text-neutral-500 hover:text-neutral-800"
+                >
+                  {showAllStarters ? "Show less" : `Show more (+${filteredStarters.length - 5})`}
+                </button>
+              )}
             </section>
 
             {/* Weekday Histogram */}
@@ -612,6 +765,35 @@ export function AboutChatModal({
         ) : (
           /* Deep Analytics Visual Dashboard */
           <div className="flex flex-col gap-5 p-4 animate-fadeIn">
+            {/* Participant selector */}
+            {stats.participants.length > 5 && (
+              <div className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-3">
+                <h5 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                  Visualized Participants (Select up to 5)
+                </h5>
+                <div className="flex flex-wrap gap-1.5">
+                  {stats.participants.map((p) => {
+                    const isSelected = selectedAnalyticsParticipants.includes(p.name);
+                    return (
+                      <button
+                        key={p.name}
+                        onClick={() => handleToggleAnalyticsParticipant(p.name)}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border transition-all",
+                          isSelected
+                            ? "bg-neutral-900 border-neutral-900 text-white"
+                            : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+                        )}
+                      >
+                        <Avatar name={p.name} size={14} />
+                        <span className="truncate max-w-[80px]">{p.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* 1. GitHub-style Calendar Heatmap */}
             <CalendarHeatmapWidget dailyActivity={stats.dailyActivity} theme={chat.theme} />
 
@@ -623,15 +805,27 @@ export function AboutChatModal({
             </div>
 
             {/* 3. Stacked Area Chart - Messages by Month split by participant */}
-            <StackedAreaVolumeChart stats={stats} theme={chat.theme} />
+            <StackedAreaVolumeChart
+              stats={stats}
+              theme={chat.theme}
+              selectedParticipants={selectedAnalyticsParticipants.length > 0 ? selectedAnalyticsParticipants : top5}
+            />
 
             {/* 4. Radar Spider Chart - participant personality profile */}
             {stats.participants.length >= 2 && (
-              <ParticipantRadarChart stats={stats} theme={chat.theme} />
+              <ParticipantRadarChart
+                stats={stats}
+                theme={chat.theme}
+                selectedParticipants={selectedAnalyticsParticipants.length > 0 ? selectedAnalyticsParticipants : top5}
+              />
             )}
 
             {/* 5. Reply Time Trend Line - plotted over months */}
-            <ReplyTimeTrendChart stats={stats} theme={chat.theme} />
+            <ReplyTimeTrendChart
+              stats={stats}
+              theme={chat.theme}
+              selectedParticipants={selectedAnalyticsParticipants.length > 0 ? selectedAnalyticsParticipants : top5}
+            />
           </div>
         )}
     </>
