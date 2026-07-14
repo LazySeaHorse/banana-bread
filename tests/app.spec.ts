@@ -64,6 +64,10 @@ test.describe("Banana Bread Chat App tests", () => {
     
     // Verify analytics widgets are loaded (e.g. active threads, calendar heatmap or graphs)
     await expect(page.locator("text=Active Threads").filter({ visible: true })).toBeVisible();
+    
+    // Expand Active Threads
+    await page.locator("button:has-text('Active Threads')").first().click();
+
     await expect(page.locator("text=budget").or(page.locator("text=server")).first()).toBeVisible();
     await expect(page.locator("text=Chat Heatmap").filter({ visible: true })).toBeVisible();
     await expect(page.locator("text=24-Hour Activity Clock").filter({ visible: true })).toBeVisible();
