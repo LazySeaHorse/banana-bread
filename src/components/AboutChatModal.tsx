@@ -604,6 +604,18 @@ export function AboutChatModal({
                           {p.sentimentScore > 0 ? "+" : ""}{p.sentimentScore.toFixed(2)}
                         </span>
                       </div>
+                      <div className="flex justify-between text-neutral-500">
+                        <span>💤 Sleep:</span>
+                        <span className="font-medium text-neutral-700">
+                          {p.estimatedBedtime} - {p.estimatedWakeTime}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-neutral-500">
+                        <span>👻 Ghosting:</span>
+                        <span className="font-medium text-neutral-700 text-red-500">
+                          {p.ghostingRate.toFixed(0)}%
+                        </span>
+                      </div>
                     </div>
                     {p.distinctiveWords && p.distinctiveWords.length > 0 && (
                       <div className="mt-2.5 border-t border-neutral-100/70 pt-2">

@@ -6,6 +6,37 @@ const sentimentAnalyzer = new Sentiment();
 
 const EMOJI_RE = /(\p{Extended_Pictographic})/gu;
 
+function estimateSleepWindow(histogram: number[]): { bedtime: string; wakeTime: string } {
+  let minActivity = Infinity;
+  let bestStartHour = 0;
+  const WINDOW_SIZE = 7;
+  
+  for (let startHour = 0; startHour < 24; startHour++) {
+    let activity = 0;
+    for (let i = 0; i < WINDOW_SIZE; i++) {
+      const h = (startHour + i) % 24;
+      activity += histogram[h] ?? 0;
+    }
+    const isNightStart = startHour >= 21 || startHour <= 4;
+    if (activity < minActivity || (activity === minActivity && isNightStart)) {
+      minActivity = activity;
+      bestStartHour = startHour;
+    }
+  }
+  
+  const endHour = (bestStartHour + WINDOW_SIZE) % 24;
+  const formatHour = (h: number) => {
+    const period = h >= 12 ? "PM" : "AM";
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    return `${displayH} ${period}`;
+  };
+  
+  return {
+    bedtime: formatHour(bestStartHour),
+    wakeTime: formatHour(endHour),
+  };
+}
+
 const CHAT_SLANG = new Set([
   "lol", "lmao", "rofl", "omg", "idk", "brb", "btw", "tbh", "imho", "pls", "thx",
   "tldr", "fyi", "wip", "aka", "asap", "wtf", "txt", "msg", "ppl", "gonna", "wanna",
@@ -109,6 +140,9 @@ export function computeStats(chat: ChatData): ChatStats {
       }
     }
   }
+
+  const ghostCounts = new Map<string, number>();
+  const participantHourHistograms = new Map<string, number[]>();
 
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
@@ -238,9 +272,18 @@ export function computeStats(chat: ChatData): ChatStats {
         nightOwlCounts.set(sender, (nightOwlCounts.get(sender) ?? 0) + 1);
       }
 
-      // Conversation Starters: first message or message after > 6 hours of silence
+      // Track participant hour histogram
+      const pHist = participantHourHistograms.get(sender) ?? new Array(24).fill(0);
+      pHist[hour]++;
+      participantHourHistograms.set(sender, pHist);
+
+      // Conversation Starters & Ghosting tracking
       if (lastMsgTs === 0 || (m.ts - lastMsgTs > 6 * 3600 * 1000)) {
         startersCounts.set(sender, (startersCounts.get(sender) ?? 0) + 1);
+        if (lastMsgTs > 0 && lastNonSystemMsg && lastNonSystemMsg.sender) {
+          const prevSender = lastNonSystemMsg.sender;
+          ghostCounts.set(prevSender, (ghostCounts.get(prevSender) ?? 0) + 1);
+        }
       }
       lastMsgTs = m.ts;
 
@@ -306,6 +349,12 @@ export function computeStats(chat: ChatData): ChatStats {
     }
   }
 
+  // End of chat also counts as session ending for the last sender
+  if (lastNonSystemMsg && lastNonSystemMsg.sender) {
+    const lastSender = lastNonSystemMsg.sender;
+    ghostCounts.set(lastSender, (ghostCounts.get(lastSender) ?? 0) + 1);
+  }
+
   const nonSystemTotal = messages.length - systemCount;
   const participants: ParticipantStat[] = Array.from(perParticipant.entries())
     .map(([name, v]) => {
@@ -342,6 +391,12 @@ export function computeStats(chat: ChatData): ChatStats {
       const pSent = sentimentScores.get(name) ?? { totalScore: 0, count: 0 };
       const sentimentScore = pSent.count > 0 ? pSent.totalScore / pSent.count : 0;
 
+      const ghostCount = ghostCounts.get(name) ?? 0;
+      const ghostingRate = v.count > 0 ? (ghostCount / v.count) * 100 : 0;
+
+      const pHist = participantHourHistograms.get(name) ?? new Array(24).fill(0);
+      const sleep = estimateSleepWindow(pHist);
+
       return {
         name,
         count: v.count,
@@ -360,6 +415,9 @@ export function computeStats(chat: ChatData): ChatStats {
         topTypos,
         distinctiveWords,
         sentimentScore,
+        ghostingRate,
+        estimatedBedtime: sleep.bedtime,
+        estimatedWakeTime: sleep.wakeTime,
       };
     })
     .sort((a, b) => b.count - a.count);

@@ -64,6 +64,9 @@ export interface ParticipantStat {
   topTypos: { word: string; count: number }[];
   distinctiveWords: string[];
   sentimentScore: number;
+  ghostingRate: number;
+  estimatedBedtime: string;
+  estimatedWakeTime: string;
 }
 
 export interface ChatStats {
