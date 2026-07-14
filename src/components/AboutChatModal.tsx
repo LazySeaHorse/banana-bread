@@ -1,5 +1,21 @@
 import { useMemo, useState, useEffect } from "react";
-import { X, Check, Trash2, Bot } from "lucide-react";
+import {
+  X,
+  Check,
+  Trash2,
+  Bot,
+  MessageSquare,
+  Clock,
+  Repeat,
+  Moon,
+  Smile,
+  Bed,
+  Ghost,
+  AlertTriangle,
+  Flame,
+  FileText,
+  TrendingUp,
+} from "lucide-react";
 import type { ChatData } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { computeStats } from "@/lib/stats";
@@ -603,45 +619,66 @@ export function AboutChatModal({
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div className="flex justify-between text-neutral-500">
-                        <span>✍️ Words/msg:</span>
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquare size={13} className="text-neutral-400" />
+                          Words/msg:
+                        </span>
                         <span className="font-medium text-neutral-700">
                           {p.avgWordsPerMessage.toFixed(1)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>⏱️ Reply time:</span>
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={13} className="text-neutral-400" />
+                          Reply time:
+                        </span>
                         <span className="font-medium text-neutral-700">
                           {formatReplyTime(p.avgReplyMinutes)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>🔁 Double-text:</span>
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Repeat size={13} className="text-neutral-400" />
+                          Double-text:
+                        </span>
                         <span className="font-medium text-neutral-700">
                           {p.doubleTextRate.toFixed(0)}%
                         </span>
                       </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>🦉 Night owl:</span>
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Moon size={13} className="text-neutral-400" />
+                          Night owl:
+                        </span>
                         <span className="font-medium text-neutral-700">
                           {p.nightOwlScore.toFixed(0)}%
                         </span>
                       </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>😊 Sentiment:</span>
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Smile size={13} className="text-neutral-400" />
+                          Sentiment:
+                        </span>
                         <span className="font-medium text-neutral-700">
                           {p.sentimentScore > 0 ? "+" : ""}{p.sentimentScore.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>💤 Sleep:</span>
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5">
+                          <Bed size={13} className="text-neutral-400" />
+                          Sleep:
+                        </span>
                         <span className="font-medium text-neutral-700">
                           {p.estimatedBedtime} - {p.estimatedWakeTime}
                         </span>
                       </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>👻 Ghosting:</span>
-                        <span className="font-medium text-neutral-700 text-red-500">
+                      <div className="flex justify-between text-neutral-500 items-center">
+                        <span className="flex items-center gap-1.5 text-red-500">
+                          <Ghost size={13} className="text-red-400" />
+                          Ghosting:
+                        </span>
+                        <span className="font-medium text-red-500">
                           {p.ghostingRate.toFixed(0)}%
                         </span>
                       </div>
@@ -681,8 +718,8 @@ export function AboutChatModal({
 
             {/* Spelling & Typos */}
             <section className="border-b border-neutral-100 px-4 py-4">
-              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                Spelling & Typos 🚨
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400 flex items-center gap-1.5">
+                <AlertTriangle size={13} className="text-amber-500" /> Spelling & Typos
               </h3>
               <p className="mb-2.5 text-xs text-neutral-400 leading-snug">
                 Typos per 1,000 words (worst spellers first).
@@ -843,32 +880,44 @@ export function AboutChatModal({
             )}
 
             {/* Fun facts */}
-            <section className="border-b border-neutral-100 px-4 py-4 text-sm text-neutral-600">
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+            <section className="border-b border-neutral-100 px-4 py-4 text-sm text-neutral-600 flex flex-col gap-2">
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
                 Fun facts
               </h3>
               {stats.mostActiveDay && (
-                <p className="mb-1">
-                  🔥 Most active day:{" "}
-                  <b>{new Date(stats.mostActiveDay.date).toLocaleDateString()}</b>{" "}
-                  with {stats.mostActiveDay.count} messages
-                </p>
+                <div className="flex items-center gap-2">
+                  <Flame size={14} className="text-orange-500 shrink-0" />
+                  <span>
+                    Most active day:{" "}
+                    <b>{new Date(stats.mostActiveDay.date).toLocaleDateString()}</b>{" "}
+                    with {stats.mostActiveDay.count} messages
+                  </span>
+                </div>
               )}
               {stats.longest && (
-                <p className="mb-1">
-                  ✍️ Longest message by <b>{stats.longest.sender}</b> (
-                  {stats.longest.length} chars)
-                </p>
+                <div className="flex items-center gap-2">
+                  <FileText size={14} className="text-blue-500 shrink-0" />
+                  <span>
+                    Longest message by <b>{stats.longest.sender}</b> (
+                    {stats.longest.length} chars)
+                  </span>
+                </div>
               )}
               {stats.longestStreakDays > 0 && (
-                <p className="mb-1">
-                  📈 Longest active streak: <b>{stats.longestStreakDays} consecutive days</b>
-                </p>
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={14} className="text-emerald-500 shrink-0" />
+                  <span>
+                    Longest active streak: <b>{stats.longestStreakDays} consecutive days</b>
+                  </span>
+                </div>
               )}
               {stats.longestSilenceMs > 0 && (
-                <p>
-                  💤 Longest silence: <b>{formatSilenceDuration(stats.longestSilenceMs)}</b>
-                </p>
+                <div className="flex items-center gap-2">
+                  <Moon size={14} className="text-purple-500 shrink-0" />
+                  <span>
+                    Longest silence: <b>{formatSilenceDuration(stats.longestSilenceMs)}</b>
+                  </span>
+                </div>
               )}
             </section>
 
