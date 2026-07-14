@@ -44,53 +44,68 @@ export default function App() {
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-white font-[system-ui] text-neutral-900 antialiased">
-      <div className="mx-auto flex h-full max-w-6xl md:py-4">
-        <div className="flex h-full w-full overflow-hidden bg-white md:rounded-2xl md:shadow-xl md:ring-1 md:ring-black/5">
-          {/* sidebar: always visible on desktop, only when no chat open on mobile */}
-          <div
-            className={`h-full w-full shrink-0 border-r border-neutral-100 md:block md:w-[360px] ${
-              activeChat ? "hidden md:block" : "block"
-            }`}
-          >
-            <ChatListSidebar
-              chats={index}
-              activeChatId={activeChatId}
-              onOpenChat={openChat}
-              onImport={importFile}
-              onOpenSettings={() => setSettingsOpen(true)}
+      <div className="flex h-full w-full overflow-hidden bg-white">
+        {/* sidebar: always visible on desktop, only when no chat open on mobile */}
+        <div
+          className={`h-full w-full shrink-0 border-r border-neutral-100 md:block md:w-[360px] ${
+            activeChat ? "hidden md:block" : "block"
+          }`}
+        >
+          <ChatListSidebar
+            chats={index}
+            activeChatId={activeChatId}
+            onOpenChat={openChat}
+            onImport={importFile}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        </div>
+
+        {/* main pane */}
+        <div
+          className={`h-full min-w-0 flex-1 ${activeChat ? "block" : "hidden md:block"}`}
+        >
+          {activeChat ? (
+            <ChatView
+              key={activeChat.id}
+              chat={activeChat}
+              onBack={() => setActiveChat(null)}
+              onOpenAbout={() => setAboutOpen(true)}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-50 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#FCD34D] to-[#D97706]">
+                <MessageCircle size={34} className="text-white" />
+              </div>
+              <h2 className="text-lg font-semibold text-neutral-700">
+                Your Messages
+              </h2>
+              <p className="max-w-xs text-sm text-neutral-400">
+                Select a chat, or import a new WhatsApp export to get started.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* third panel: About panel inline on desktop (lg breakpoint) */}
+        {aboutOpen && activeChat && (
+          <div className="hidden h-full w-[360px] shrink-0 border-l border-neutral-100 lg:block">
+            <AboutChatModal
+              chat={activeChat}
+              onClose={() => setAboutOpen(false)}
+              inline={true}
             />
           </div>
-
-          {/* main pane */}
-          <div
-            className={`h-full min-w-0 flex-1 ${activeChat ? "block" : "hidden md:block"}`}
-          >
-            {activeChat ? (
-              <ChatView
-                key={activeChat.id}
-                chat={activeChat}
-                onBack={() => setActiveChat(null)}
-                onOpenAbout={() => setAboutOpen(true)}
-              />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-50 text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#FCD34D] to-[#D97706]">
-                  <MessageCircle size={34} className="text-white" />
-                </div>
-                <h2 className="text-lg font-semibold text-neutral-700">
-                  Your Messages
-                </h2>
-                <p className="max-w-xs text-sm text-neutral-400">
-                  Select a chat, or import a new WhatsApp export to get started.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
       {aboutOpen && activeChat && (
-        <AboutChatModal chat={activeChat} onClose={() => setAboutOpen(false)} />
+        <div className="lg:hidden">
+          <AboutChatModal
+            chat={activeChat}
+            onClose={() => setAboutOpen(false)}
+            inline={false}
+          />
+        </div>
       )}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
