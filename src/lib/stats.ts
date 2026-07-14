@@ -1,6 +1,14 @@
 import type { ChatData, ChatStats, ParticipantStat, RawMessage } from "@/types";
+import { ENGLISH_WORDS } from "./english_dictionary";
 
 const EMOJI_RE = /(\p{Extended_Pictographic})/gu;
+
+const CHAT_SLANG = new Set([
+  "lol", "lmao", "rofl", "omg", "idk", "brb", "btw", "tbh", "imho", "pls", "thx",
+  "tldr", "fyi", "wip", "aka", "asap", "wtf", "txt", "msg", "ppl", "gonna", "wanna",
+  "gotta", "bruh", "ur", "ok", "okay", "yeah", "yes", "ya", "yep", "nah", "pms", "dm",
+  "fb", "ig", "yt", "li", "tw", "sc", "wa", "tg", "discord", "zoom", "teams", "slack"
+]);
 
 const STOP_WORDS = new Set([
   // English
@@ -78,6 +86,21 @@ export function computeStats(chat: ChatData): ChatStats {
   let lastTsForSilence = 0;
   let lastMsgTs = 0;
 
+  let globalTotalTypos = 0;
+  const globalTypoCounts = new Map<string, number>();
+  const participantTypos = new Map<string, Map<string, number>>();
+  const participantTotalTypos = new Map<string, number>();
+
+  const participantNameWords = new Set<string>();
+  for (const p of chat.participants) {
+    const parts = p.toLowerCase().split(/[^a-z]+/);
+    for (const part of parts) {
+      if (part.length > 1) {
+        participantNameWords.add(part);
+      }
+    }
+  }
+
   for (const m of messages) {
     if (m.system) {
       systemCount++;
@@ -111,6 +134,29 @@ export function computeStats(chat: ChatData): ChatStats {
           const cleanW = w.replace(/^'+|'+$/g, "");
           if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
             wordCounts.set(cleanW, (wordCounts.get(cleanW) ?? 0) + 1);
+          }
+        }
+      }
+
+      // Spell check for English
+      if (m.text) {
+        const cleanedText = m.text.toLowerCase();
+        const tokens = cleanedText.split(/[^a-z']+/);
+        for (const w of tokens) {
+          const cleanW = w.replace(/^'+|'+$/g, "");
+          if (cleanW.length > 1 && !CHAT_SLANG.has(cleanW) && !participantNameWords.has(cleanW)) {
+            const deApostrophed = cleanW.replace(/'/g, "");
+            const inDict = ENGLISH_WORDS.has(cleanW) || ENGLISH_WORDS.has(deApostrophed);
+            if (!inDict) {
+              globalTotalTypos++;
+              globalTypoCounts.set(cleanW, (globalTypoCounts.get(cleanW) ?? 0) + 1);
+
+              const pTypos = participantTypos.get(sender) ?? new Map<string, number>();
+              pTypos.set(cleanW, (pTypos.get(cleanW) ?? 0) + 1);
+              participantTypos.set(sender, pTypos);
+
+              participantTotalTypos.set(sender, (participantTotalTypos.get(sender) ?? 0) + 1);
+            }
           }
         }
       }
@@ -207,6 +253,13 @@ export function computeStats(chat: ChatData): ChatStats {
       const emojiMsgCount = emojiMessageCounts.get(name) ?? 0;
       const questionMsgCount = questionMessageCounts.get(name) ?? 0;
 
+      const pTyposMap = participantTypos.get(name) ?? new Map<string, number>();
+      const typoCount = participantTotalTypos.get(name) ?? 0;
+      const topTypos = Array.from(pTyposMap.entries())
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
       return {
         name,
         count: v.count,
@@ -220,6 +273,9 @@ export function computeStats(chat: ChatData): ChatStats {
         emojiRate: v.count > 0 ? (emojiMsgCount / v.count) * 100 : 0,
         questionRate: v.count > 0 ? (questionMsgCount / v.count) * 100 : 0,
         mediaRate: v.count > 0 ? (v.media / v.count) * 100 : 0,
+        typoCount,
+        typoRate: v.words > 0 ? (typoCount / v.words) * 1000 : 0,
+        topTypos,
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -340,6 +396,11 @@ export function computeStats(chat: ChatData): ChatStats {
     .sort((a, b) => b.value - a.value)
     .slice(0, 80);
 
+  const topTypos = Array.from(globalTypoCounts.entries())
+    .map(([word, count]) => ({ word, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
   return {
     totalMessages: nonSystemTotal,
     totalWords,
@@ -363,5 +424,7 @@ export function computeStats(chat: ChatData): ChatStats {
     monthlyTrendSplit,
     replyTimeTrend,
     wordCloudWords,
+    totalTypos: globalTotalTypos,
+    topTypos,
   };
 }

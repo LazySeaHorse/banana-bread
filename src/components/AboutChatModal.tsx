@@ -613,6 +613,48 @@ export function AboutChatModal({
               )}
             </section>
 
+            {/* Spelling & Typos */}
+            <section className="border-b border-neutral-100 px-4 py-4">
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                Spelling & Typos 🚨
+              </h3>
+              <p className="mb-2.5 text-xs text-neutral-400 leading-snug">
+                Typos per 1,000 words. (Analyzed for English).
+              </p>
+              <div className="flex flex-col gap-3">
+                {stats.participants.map((p) => {
+                  const maxRate = Math.max(...stats.participants.map((x) => x.typoRate), 1);
+                  const barPct = (p.typoRate / maxRate) * 100;
+                  return (
+                    <div key={p.name} className="flex flex-col gap-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium text-neutral-700 truncate">{p.name}</span>
+                        <span className="text-neutral-500 font-semibold">
+                          {p.typoRate.toFixed(1)}/k words ({p.typoCount} total)
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-400 to-red-500 rounded-full"
+                          style={{ width: `${barPct}%` }}
+                        />
+                      </div>
+                      {p.topTypos.length > 0 && (
+                        <div className="text-[10px] text-neutral-400 flex flex-wrap gap-1 mt-0.5">
+                          <span className="italic">Common slips:</span>
+                          {p.topTypos.map((t) => (
+                            <span key={t.word} className="bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-600 font-mono font-medium">
+                              "{t.word}" ({t.count})
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
             {/* Conversation Starters */}
             <section className="border-b border-neutral-100 px-4 py-4">
               <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">

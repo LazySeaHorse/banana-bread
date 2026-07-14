@@ -59,6 +59,9 @@ export interface ParticipantStat {
   emojiRate: number;
   questionRate: number;
   mediaRate: number;
+  typoCount: number;
+  typoRate: number;
+  topTypos: { word: string; count: number }[];
 }
 
 export interface ChatStats {
@@ -84,6 +87,8 @@ export interface ChatStats {
   monthlyTrendSplit: { month: string; [participant: string]: number | string }[];
   replyTimeTrend: { month: string; [participant: string]: number | null | string }[];
   wordCloudWords: { text: string; value: number }[];
+  totalTypos: number;
+  topTypos: { word: string; count: number }[];
 }
 
 
