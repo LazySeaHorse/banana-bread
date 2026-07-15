@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useId } from "react";
 import type { BubbleTheme } from "@/types";
 
 export function RadialActivityClock({
@@ -9,6 +9,10 @@ export function RadialActivityClock({
   theme: BubbleTheme;
 }) {
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
+  const uniqueId = useId();
+
+  const radialGradId = `radialGrad-${uniqueId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const glowGradId = `glowGrad-${uniqueId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   const maxVal = useMemo(() => {
     return Math.max(...hourHistogram, 1);
@@ -76,11 +80,11 @@ export function RadialActivityClock({
           className="w-full overflow-visible select-none"
         >
           <defs>
-            <linearGradient id="radialGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={radialGradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={theme.meFrom} stopOpacity={0.65} />
               <stop offset="100%" stopColor={theme.meTo} stopOpacity={0.15} />
             </linearGradient>
-            <radialGradient id="glowGrad">
+            <radialGradient id={glowGradId}>
               <stop offset="70%" stopColor="#ffffff" stopOpacity={1} />
               <stop offset="100%" stopColor="#f4f4f5" stopOpacity={0.9} />
             </radialGradient>
@@ -127,7 +131,7 @@ export function RadialActivityClock({
           {/* Filled polygon for entire activity profile */}
           <path
             d={polygonPath}
-            fill="url(#radialGrad)"
+            fill={`url(#${radialGradId})`}
             stroke={theme.meFrom}
             strokeWidth={1.5}
             strokeOpacity={0.8}
@@ -174,7 +178,7 @@ export function RadialActivityClock({
             cx={center}
             cy={center}
             r={innerRadius - 1}
-            fill="url(#glowGrad)"
+            fill={`url(#${glowGradId})`}
             stroke="#e4e4e7"
             strokeWidth={1.5}
             className="shadow-sm"

@@ -107,11 +107,24 @@ test.describe("Banana Bread Chat App tests", () => {
       await expect(page.locator("button:has(svg.lucide-arrow-left)")).toBeVisible();
       // Open Info / Analytics Panel
       await page.locator("button.flex.min-w-0.flex-1").click();
-      await expect(page.locator("text=General & Setup").filter({ visible: true })).toBeVisible();
+      // In General & Setup tab, scroll to Monthly Trend and take screenshot
+      const generalHeader = page.locator("text=General & Setup").filter({ visible: true });
+      await expect(generalHeader).toBeVisible();
       
+      const monthlyTrendHeader = page.locator("text=Monthly Trend").filter({ visible: true }).first();
+      await monthlyTrendHeader.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: "tests/screenshots/mobile-general-monthly-trend.png" });
+
       // Go to analytics
       await page.locator("text=Deep Analytics").filter({ visible: true }).click();
       await page.screenshot({ path: "tests/screenshots/mobile-analytics.png" });
+
+      // Scroll to Monthly Messages Stacked
+      const chartHeader = page.locator("text=Monthly Messages Stacked");
+      await chartHeader.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: "tests/screenshots/mobile-analytics-monthly-chart.png" });
 
       // Close the modal
       await page.locator(".sticky button:has(svg.lucide-x)").filter({ visible: true }).click();

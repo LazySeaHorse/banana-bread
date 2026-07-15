@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useId } from "react";
 import {
   X,
   Check,
@@ -89,6 +89,7 @@ function MonthlyTrendChart({
   theme: ChatData["theme"];
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const uniqueId = useId();
 
   if (trend.length === 0) return null;
 
@@ -104,6 +105,9 @@ function MonthlyTrendChart({
   const chartHeight = height - paddingTop - paddingBottom;
   const barWidth = trend.length > 0 ? (chartWidth / trend.length) * 0.75 : 0;
   const barGap = trend.length > 0 ? (chartWidth / trend.length) * 0.25 : 0;
+
+  const gradId = `chartBarGrad-${uniqueId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const gradHoverId = `chartBarGradHover-${uniqueId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   return (
     <div className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100">
@@ -124,11 +128,11 @@ function MonthlyTrendChart({
         <div style={{ minWidth: Math.max(trend.length * 16, 320) }}>
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible">
             <defs>
-              <linearGradient id={`chartBarGrad-${theme.id}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={theme.meFrom} />
                 <stop offset="100%" stopColor={theme.meTo} stopOpacity="0.4" />
               </linearGradient>
-              <linearGradient id={`chartBarGradHover-${theme.id}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradHoverId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={theme.meFrom} />
                 <stop offset="100%" stopColor={theme.meTo} />
               </linearGradient>
@@ -177,7 +181,7 @@ function MonthlyTrendChart({
                   height={Math.max(barHeight, 2)}
                   rx={Math.max(1, barWidth / 6)}
                   ry={Math.max(1, barWidth / 6)}
-                  fill={isHovered ? `url(#chartBarGradHover-${theme.id})` : `url(#chartBarGrad-${theme.id})`}
+                  fill={isHovered ? `url(#${gradHoverId})` : `url(#${gradId})`}
                   className="transition-all duration-150 cursor-pointer"
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
