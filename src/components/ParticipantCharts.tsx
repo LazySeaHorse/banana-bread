@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
+import { BarChart2, Brain, PenTool } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -146,6 +147,8 @@ export function ParticipantRadarChart({
   theme,
   selectedParticipants,
 }: ChartProps & { selectedParticipants: string[] }) {
+  const [activeTab, setActiveTab] = useState<"chatStats" | "bigFive" | "writingStyle">("chatStats");
+
   const colorMap = useMemo(
     () => getParticipantColors(stats.participants.map((p) => p.name), theme),
     [stats, theme]
@@ -166,31 +169,113 @@ export function ParticipantRadarChart({
     const maxQuestion = Math.max(...parts.map((p) => p.questionRate), 1);
     const maxMedia = Math.max(...parts.map((p) => p.mediaRate), 1);
     const maxReply = Math.max(...parts.map((p) => p.avgReplyMinutes), 1);
+    const maxDoubleText = Math.max(...parts.map((p) => p.doubleTextRate), 1);
+    const maxTypo = Math.max(...parts.map((p) => p.typoRate), 1);
+    const maxNightOwl = Math.max(...parts.map((p) => p.nightOwlScore), 1);
+    const maxGhost = Math.max(...parts.map((p) => p.ghostingRate), 1);
+    const maxAllCaps = Math.max(...parts.map((p) => p.allCapsRate), 1);
+    const maxSlang = Math.max(...parts.map((p) => p.slangRate), 1);
+    const maxExclamation = Math.max(...parts.map((p) => p.exclamationRate), 1);
 
-    const axes = [
-      { subject: "Message Share", key: "pct", max: maxPct },
-      { subject: "Avg Words/Msg", key: "avgWordsPerMessage", max: maxWords },
-      { subject: "Emoji Rate", key: "emojiRate", max: maxEmoji },
-      { subject: "Questions Rate", key: "questionRate", max: maxQuestion },
-      { subject: "Media Share", key: "mediaRate", max: maxMedia },
-      { subject: "Reply Speed", key: "replySpeed", max: maxReply },
-    ];
+    const sentiments = parts.map((p) => p.sentimentScore);
+    const minSent = Math.min(...sentiments, 0);
+    const maxSent = Math.max(...sentiments, 1);
 
-    return axes.map((axis) => {
-      const entry: any = { subject: axis.subject };
-      parts.forEach((p) => {
-        if (axis.key === "replySpeed") {
-          // Reply speed normalization (lower reply time = faster score)
-          const score = p.avgReplyMinutes > 0 ? (1 - (p.avgReplyMinutes / axis.max) * 0.9) * 100 : 0;
-          entry[p.name] = Number(score.toFixed(0));
-        } else {
-          const val = p[axis.key as keyof typeof p] as number;
-          entry[p.name] = Number(((val / axis.max) * 100).toFixed(0));
-        }
+    if (activeTab === "chatStats") {
+      const axes = [
+        { subject: "Message Share", key: "pct", max: maxPct },
+        { subject: "Avg Words/Msg", key: "avgWordsPerMessage", max: maxWords },
+        { subject: "Emoji Rate", key: "emojiRate", max: maxEmoji },
+        { subject: "Questions Rate", key: "questionRate", max: maxQuestion },
+        { subject: "Media Share", key: "mediaRate", max: maxMedia },
+        { subject: "Reply Speed", key: "replySpeed", max: maxReply },
+      ];
+
+      return axes.map((axis) => {
+        const entry: any = { subject: axis.subject };
+        parts.forEach((p) => {
+          if (axis.key === "replySpeed") {
+            const score = p.avgReplyMinutes > 0 ? (1 - (p.avgReplyMinutes / axis.max) * 0.9) * 100 : 0;
+            entry[p.name] = Number(score.toFixed(0));
+          } else {
+            const val = p[axis.key as keyof typeof p] as number;
+            entry[p.name] = Number(((val / axis.max) * 100).toFixed(0));
+          }
+        });
+        return entry;
       });
-      return entry;
-    });
-  }, [stats]);
+    } else if (activeTab === "bigFive") {
+      const axes = [
+        { subject: "Extraversion", key: "extraversion" },
+        { subject: "Agreeableness", key: "agreeableness" },
+        { subject: "Conscientiousness", key: "conscientiousness" },
+        { subject: "Reactivity", key: "reactivity" },
+        { subject: "Openness", key: "openness" },
+      ];
+
+      return axes.map((axis) => {
+        const entry: any = { subject: axis.subject };
+        parts.forEach((p) => {
+          let score = 0;
+          if (axis.key === "extraversion") {
+            const relPct = p.pct / maxPct;
+            const relDouble = p.doubleTextRate / maxDoubleText;
+            const relReply = p.avgReplyMinutes > 0 ? (1 - (p.avgReplyMinutes / maxReply) * 0.9) : 0;
+            score = (relPct * 0.4 + relDouble * 0.3 + relReply * 0.3) * 100;
+          } else if (axis.key === "agreeableness") {
+            const relSent = (p.sentimentScore - minSent) / (maxSent - minSent || 1);
+            const relEmoji = p.emojiRate / maxEmoji;
+            score = (relSent * 0.6 + relEmoji * 0.4) * 100;
+          } else if (axis.key === "conscientiousness") {
+            const relTypoInv = 1 - (p.typoRate / maxTypo) * 0.8;
+            const relDayOwl = 1 - (p.nightOwlScore / maxNightOwl) * 0.8;
+            score = (relTypoInv * 0.5 + relDayOwl * 0.5) * 100;
+          } else if (axis.key === "reactivity") {
+            const relDouble = p.doubleTextRate / maxDoubleText;
+            const relGhost = p.ghostingRate / maxGhost;
+            score = (relDouble * 0.5 + relGhost * 0.5) * 100;
+          } else if (axis.key === "openness") {
+            const relWords = p.avgWordsPerMessage / maxWords;
+            const relQuestion = p.questionRate / maxQuestion;
+            score = (relWords * 0.5 + relQuestion * 0.5) * 100;
+          }
+          entry[p.name] = Math.round(score);
+        });
+        return entry;
+      });
+    } else {
+      // writingStyle
+      const axes = [
+        { subject: "Loudness", key: "loudness" },
+        { subject: "Expressiveness", key: "expressiveness" },
+        { subject: "Slang Density", key: "slang" },
+        { subject: "Exclamations", key: "exclamations" },
+        { subject: "Fragmentation", key: "fragmentation" },
+      ];
+
+      return axes.map((axis) => {
+        const entry: any = { subject: axis.subject };
+        parts.forEach((p) => {
+          let score = 0;
+          if (axis.key === "loudness") {
+            score = (p.allCapsRate / maxAllCaps) * 100;
+          } else if (axis.key === "expressiveness") {
+            const relEmoji = p.emojiRate / maxEmoji;
+            const relMedia = p.mediaRate / maxMedia;
+            score = (relEmoji * 0.5 + relMedia * 0.5) * 100;
+          } else if (axis.key === "slang") {
+            score = (p.slangRate / maxSlang) * 100;
+          } else if (axis.key === "exclamations") {
+            score = (p.exclamationRate / maxExclamation) * 100;
+          } else if (axis.key === "fragmentation") {
+            score = (p.doubleTextRate / maxDoubleText) * 100;
+          }
+          entry[p.name] = Math.round(score);
+        });
+        return entry;
+      });
+    }
+  }, [filteredParticipants, activeTab]);
 
   if (stats.participants.length < 2) {
     return null; // Radar is not useful for single participant chats
@@ -198,11 +283,48 @@ export function ParticipantRadarChart({
 
   return (
     <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-      <div className="mb-4">
-        <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
-          Participant Personality
-        </h4>
-        <p className="text-[11px] text-neutral-400">Relative chat traits (normalized 0-100)</p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+            Participant Personality
+          </h4>
+          <p className="text-[11px] text-neutral-400">Relative chat traits (normalized 0-100)</p>
+        </div>
+        <div className="flex flex-wrap gap-1 text-[10px] font-semibold">
+          <button
+            onClick={() => setActiveTab("chatStats")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors cursor-pointer border ${
+              activeTab === "chatStats"
+                ? "bg-neutral-900 border-neutral-900 text-white"
+                : "bg-white border-neutral-200 text-neutral-500 hover:text-neutral-800"
+            }`}
+          >
+            <BarChart2 size={11} />
+            Stats
+          </button>
+          <button
+            onClick={() => setActiveTab("bigFive")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors cursor-pointer border ${
+              activeTab === "bigFive"
+                ? "bg-neutral-900 border-neutral-900 text-white"
+                : "bg-white border-neutral-200 text-neutral-500 hover:text-neutral-800"
+            }`}
+          >
+            <Brain size={11} />
+            Big Five
+          </button>
+          <button
+            onClick={() => setActiveTab("writingStyle")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors cursor-pointer border ${
+              activeTab === "writingStyle"
+                ? "bg-neutral-900 border-neutral-900 text-white"
+                : "bg-white border-neutral-200 text-neutral-500 hover:text-neutral-800"
+            }`}
+          >
+            <PenTool size={11} />
+            Habits
+          </button>
+        </div>
       </div>
 
       <div className="h-[240px] w-full">

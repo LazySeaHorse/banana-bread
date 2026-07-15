@@ -104,6 +104,11 @@ export function computeStats(chat: ChatData): ChatStats {
   // New map-based metrics
   const emojiMessageCounts = new Map<string, number>();
   const questionMessageCounts = new Map<string, number>();
+  const exclamationMessageCounts = new Map<string, number>();
+  const participantAllCapsTotal = new Map<string, number>();
+  const participantAllCapsWordCount = new Map<string, number>();
+  const participantSlangTotal = new Map<string, number>();
+  const participantSlangWordCount = new Map<string, number>();
   const monthlyParticipantCounts = new Map<string, Map<string, number>>();
   const monthlyReplyTimes = new Map<string, Map<string, { totalMs: number; count: number }>>();
   const wordCounts = new Map<string, number>();
@@ -300,6 +305,51 @@ export function computeStats(chat: ChatData): ChatStats {
         questionMessageCounts.set(sender, (questionMessageCounts.get(sender) ?? 0) + 1);
       }
 
+      // Exclamations per participant rate
+      if (m.text && m.text.includes("!")) {
+        exclamationMessageCounts.set(sender, (exclamationMessageCounts.get(sender) ?? 0) + 1);
+      }
+
+      // ALL CAPS detection
+      if (m.text) {
+        const tokens = m.text.split(/[^a-zA-Z]+/);
+        let allCapsCount = 0;
+        let wordCount = 0;
+        for (const token of tokens) {
+          if (token.length >= 2) {
+            wordCount++;
+            if (token === token.toUpperCase()) {
+              allCapsCount++;
+            }
+          }
+        }
+        if (wordCount > 0) {
+          participantAllCapsTotal.set(sender, (participantAllCapsTotal.get(sender) ?? 0) + allCapsCount);
+          participantAllCapsWordCount.set(sender, (participantAllCapsWordCount.get(sender) ?? 0) + wordCount);
+        }
+      }
+
+      // Slang detection
+      if (m.text) {
+        const cleanedText = m.text.toLowerCase();
+        const tokens = cleanedText.split(/[^a-z']+/);
+        let slangCount = 0;
+        let totalTokenCount = 0;
+        for (const w of tokens) {
+          const cleanW = w.replace(/^'+|'+$/g, "");
+          if (cleanW.length > 1) {
+            totalTokenCount++;
+            if (CHAT_SLANG.has(cleanW)) {
+              slangCount++;
+            }
+          }
+        }
+        if (totalTokenCount > 0) {
+          participantSlangTotal.set(sender, (participantSlangTotal.get(sender) ?? 0) + slangCount);
+          participantSlangWordCount.set(sender, (participantSlangWordCount.get(sender) ?? 0) + totalTokenCount);
+        }
+      }
+
       // Reply Times & Monthly Reply Times
       if (lastNonSystemMsg && lastNonSystemMsg.sender && lastNonSystemMsg.sender !== sender) {
         const gap = m.ts - lastNonSystemMsg.ts;
@@ -430,6 +480,15 @@ export function computeStats(chat: ChatData): ChatStats {
         ghostingRate,
         estimatedBedtime: sleep.bedtime,
         estimatedWakeTime: sleep.wakeTime,
+        allCapsRate: (participantAllCapsWordCount.get(name) ?? 0) > 0 
+          ? ((participantAllCapsTotal.get(name) ?? 0) / (participantAllCapsWordCount.get(name) ?? 1)) * 100 
+          : 0,
+        slangRate: (participantSlangWordCount.get(name) ?? 0) > 0 
+          ? ((participantSlangTotal.get(name) ?? 0) / (participantSlangWordCount.get(name) ?? 1)) * 100 
+          : 0,
+        exclamationRate: v.count > 0 
+          ? ((exclamationMessageCounts.get(name) ?? 0) / v.count) * 100 
+          : 0,
       };
     })
     .sort((a, b) => b.count - a.count);

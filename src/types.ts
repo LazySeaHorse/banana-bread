@@ -67,6 +67,9 @@ export interface ParticipantStat {
   ghostingRate: number;
   estimatedBedtime: string;
   estimatedWakeTime: string;
+  allCapsRate: number;
+  slangRate: number;
+  exclamationRate: number;
 }
 
 export interface ChatStats {
