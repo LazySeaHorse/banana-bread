@@ -11,8 +11,9 @@ import {
   Loader2,
   AlertCircle,
   X,
+  GitBranch,
 } from "lucide-react";
-import type { ChatData, RawMessage } from "@/types";
+import type { ChatData, RawMessage, ActiveThread } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { MessageBubble } from "@/components/MessageBubble";
 import { MessageInput } from "@/components/MessageInput";
@@ -20,6 +21,8 @@ import { SearchPanel } from "@/components/SearchPanel";
 import { formatDay } from "@/lib/date";
 import { useChatStore } from "@/store/useChatStore";
 import { useAIReply } from "@/hooks/useAIReply";
+import { computeStats } from "@/lib/stats";
+import { cn } from "@/utils/cn";
 
 type FeedItem =
   | { type: "separator"; key: string; label: string }
@@ -31,6 +34,17 @@ type FeedItem =
       groupedWithNext: boolean;
       showAvatar: boolean;
       showSenderName: boolean;
+    }
+  | {
+      type: "thread";
+      key: string;
+      thread: ActiveThread;
+      messages: RawMessage[];
+    }
+  | {
+      type: "non-thread-message";
+      key: string;
+      message: RawMessage;
     };
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -64,55 +78,137 @@ export function ChatView({
     setSendAs(chat.me || chat.participants[0] || "Me");
   }, [chat.id, chat.me]);
 
+  const [threadedView, setThreadedView] = useState(false);
+
+  const threadInfo = useMemo(() => {
+    const stats = computeStats(chat);
+    const msgIdToThread = new Map<number, ActiveThread>();
+    const threadIdMap = new Map<string, ActiveThread>();
+    for (const t of stats.activeThreads) {
+      threadIdMap.set(t.id, t);
+      for (const mId of t.messageIds) {
+        msgIdToThread.set(mId, t);
+      }
+    }
+    return { activeThreads: stats.activeThreads, msgIdToThread, threadIdMap };
+  }, [chat]);
+
   const feedItems = useMemo<FeedItem[]>(() => {
-    const items: FeedItem[] = [];
-    let lastDay: string | null = null;
-    for (let i = 0; i < chat.messages.length; i++) {
-      const m = chat.messages[i];
-      if (!Number.isNaN(m.ts) && m.ts) {
-        const dayKey = new Date(m.ts).toDateString();
-        if (dayKey !== lastDay) {
+    if (!threadedView) {
+      const items: FeedItem[] = [];
+      let lastDay: string | null = null;
+      for (let i = 0; i < chat.messages.length; i++) {
+        const m = chat.messages[i];
+        if (!Number.isNaN(m.ts) && m.ts) {
+          const dayKey = new Date(m.ts).toDateString();
+          if (dayKey !== lastDay) {
+            items.push({
+              type: "separator",
+              key: `sep-${m.ts}-${i}`,
+              label: formatDay(m.ts),
+            });
+            lastDay = dayKey;
+          }
+        }
+        const prev = chat.messages[i - 1];
+        const next = chat.messages[i + 1];
+        const groupedWithPrev = !!(
+          prev &&
+          !prev.system &&
+          !m.system &&
+          prev.sender === m.sender &&
+          m.ts - prev.ts < GROUP_WINDOW_MS
+        );
+        const groupedWithNext = !!(
+          next &&
+          !next.system &&
+          !m.system &&
+          next.sender === m.sender &&
+          next.ts - m.ts < GROUP_WINDOW_MS
+        );
+        items.push({
+          type: "message",
+          key: `m-${m.id}`,
+          message: m,
+          groupedWithPrev,
+          groupedWithNext,
+          showAvatar: !groupedWithNext,
+          showSenderName: !groupedWithPrev && chat.participants.length > 2,
+        });
+      }
+      return items;
+    } else {
+      const items: FeedItem[] = [];
+      const renderedThreads = new Set<string>();
+      let lastDay: string | null = null;
+
+      for (let i = 0; i < chat.messages.length; i++) {
+        const m = chat.messages[i];
+        if (m.system || m.deleted) continue;
+
+        const thread = threadInfo.msgIdToThread.get(m.id);
+        if (thread) {
+          if (!renderedThreads.has(thread.id)) {
+            renderedThreads.add(thread.id);
+
+            // Add date separator if date changes
+            if (!Number.isNaN(thread.startTs) && thread.startTs) {
+              const dayKey = new Date(thread.startTs).toDateString();
+              if (dayKey !== lastDay) {
+                items.push({
+                  type: "separator",
+                  key: `sep-thread-${thread.id}`,
+                  label: formatDay(thread.startTs),
+                });
+                lastDay = dayKey;
+              }
+            }
+
+            // Push the thread item
+            items.push({
+              type: "thread",
+              key: `thread-container-${thread.id}`,
+              thread,
+              messages: chat.messages.filter((msg) => thread.messageIds.includes(msg.id)),
+            });
+          }
+        } else {
+          // Non-thread message
+          if (!Number.isNaN(m.ts) && m.ts) {
+            const dayKey = new Date(m.ts).toDateString();
+            if (dayKey !== lastDay) {
+              items.push({
+                type: "separator",
+                key: `sep-${m.ts}-${i}`,
+                label: formatDay(m.ts),
+              });
+              lastDay = dayKey;
+            }
+          }
+
           items.push({
-            type: "separator",
-            key: `sep-${m.ts}-${i}`,
-            label: formatDay(m.ts),
+            type: "non-thread-message",
+            key: `non-thread-${m.id}`,
+            message: m,
           });
-          lastDay = dayKey;
         }
       }
-      const prev = chat.messages[i - 1];
-      const next = chat.messages[i + 1];
-      const groupedWithPrev = !!(
-        prev &&
-        !prev.system &&
-        !m.system &&
-        prev.sender === m.sender &&
-        m.ts - prev.ts < GROUP_WINDOW_MS
-      );
-      const groupedWithNext = !!(
-        next &&
-        !next.system &&
-        !m.system &&
-        next.sender === m.sender &&
-        next.ts - m.ts < GROUP_WINDOW_MS
-      );
-      items.push({
-        type: "message",
-        key: `m-${m.id}`,
-        message: m,
-        groupedWithPrev,
-        groupedWithNext,
-        showAvatar: !groupedWithNext,
-        showSenderName: !groupedWithPrev && chat.participants.length > 2,
-      });
+      return items;
     }
-    return items;
-  }, [chat.messages, chat.participants.length]);
+  }, [chat.messages, chat.participants.length, threadedView, threadInfo]);
 
   const messageIndexById = useMemo(() => {
     const map = new Map<number, number>();
     feedItems.forEach((item, idx) => {
-      if (item.type === "message") map.set(item.message.id, idx);
+      if (item.type === "message") {
+        map.set(item.message.id, idx);
+      } else if (item.type === "non-thread-message") {
+        map.set(item.message.id, idx);
+      } else if (item.type === "thread") {
+        for (const mId of item.thread.messageIds) {
+          map.set(mId, idx);
+        }
+      }
     });
     return map;
   }, [feedItems]);
@@ -192,6 +288,17 @@ export function ChatView({
           </button>
         )}
         <button
+          onClick={() => setThreadedView(!threadedView)}
+          className={`p-1.5 rounded-full transition-all border ${
+            threadedView
+              ? "bg-amber-100 border-amber-200 text-amber-800 hover:bg-amber-200"
+              : "bg-white border-transparent text-neutral-700 hover:text-black hover:bg-neutral-100"
+          }`}
+          title={threadedView ? "Switch to standard view" : "Switch to condensed thread view"}
+        >
+          <GitBranch size={20} />
+        </button>
+        <button
           onClick={() => setSearchOpen(true)}
           className="p-1.5 text-neutral-700 hover:text-black"
         >
@@ -224,6 +331,35 @@ export function ChatView({
                   <span className="rounded-full bg-neutral-100 px-3 py-1 text-[11px] font-medium text-neutral-500">
                     {item.label}
                   </span>
+                </div>
+              );
+            }
+            if (item.type === "thread") {
+              return (
+                <ThreadContainer
+                  thread={item.thread}
+                  messages={item.messages}
+                  chat={chat}
+                  highlightId={highlightId}
+                  sendAs={sendAs}
+                />
+              );
+            }
+            if (item.type === "non-thread-message") {
+              const m = item.message;
+              const mine = chat.me !== null && m.sender === chat.me;
+              return (
+                <div className="px-4 py-1 flex">
+                  <div className={cn(
+                    "rounded-2xl border border-neutral-200 bg-neutral-50/40 p-2 px-3 text-xs opacity-50 shadow-xs max-w-[75%]",
+                    mine ? "ml-auto bg-neutral-100/30 border-neutral-200/50" : "mr-auto"
+                  )}>
+                    <div className="text-[9px] font-semibold text-neutral-400 mb-0.5 flex justify-between gap-4">
+                      <span>{m.sender || "System"}</span>
+                      <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div className="text-neutral-500 break-words leading-relaxed">{m.text}</div>
+                  </div>
                 </div>
               );
             }
@@ -304,6 +440,149 @@ export function ChatView({
         onSend={(text) => addMessage(chat.id, sendAs, text)}
         gradient={`linear-gradient(135deg, ${chat.theme.meFrom}, ${chat.theme.meTo})`}
       />
+    </div>
+  );
+}
+
+function ThreadContainer({
+  thread,
+  messages,
+  chat,
+  highlightId,
+  sendAs,
+}: {
+  thread: ActiveThread;
+  messages: RawMessage[];
+  chat: ChatData;
+  highlightId: number | null;
+  sendAs: string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const editMessage = useChatStore((s) => s.editMessage);
+  const deleteMessage = useChatStore((s) => s.deleteMessage);
+  const toggleReaction = useChatStore((s) => s.toggleReaction);
+
+  const participantColors = useMemo(() => {
+    const baseColors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
+    const colors: Record<string, string> = {};
+    chat.participants.forEach((p, idx) => {
+      colors[p] = baseColors[idx % baseColors.length];
+    });
+    return colors;
+  }, [chat.participants]);
+
+  const participantShares = Object.entries(thread.participantCounts)
+    .map(([name, count]) => ({
+      name,
+      count,
+      color: participantColors[name] ?? "#a3a3a3",
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  useEffect(() => {
+    if (highlightId !== null && messages.some((m) => m.id === highlightId)) {
+      setIsExpanded(true);
+    }
+  }, [highlightId, messages]);
+
+  return (
+    <div className="mx-4 my-3 rounded-2xl border border-amber-100 bg-amber-50/5 p-3.5 shadow-xs transition-all">
+      {/* Thread Header Card */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {/* Header row: badge and title */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 uppercase tracking-wide">
+              Active Debate
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {thread.distinctiveWords.slice(0, 3).map((word) => (
+                <span key={word} className="text-[10px] font-bold text-amber-600">
+                  #{word}
+                </span>
+              ))}
+            </div>
+          </div>
+          
+          {/* Stats & Metadata */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-neutral-400 font-medium">
+            <span>{thread.messageCount} messages</span>
+            <span className="text-neutral-300">•</span>
+            <span>{thread.durationMinutes} min</span>
+            <span className="text-neutral-300">•</span>
+            <span className="text-amber-600 font-semibold">{thread.velocity} msg/min</span>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="shrink-0 flex items-center gap-1 rounded-lg bg-neutral-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-neutral-800 transition-all cursor-pointer shadow-xs"
+        >
+          <span>{isExpanded ? "Collapse" : "Expand"}</span>
+        </button>
+      </div>
+
+      {/* Legend / Participant Icons */}
+      <div className="mt-2 flex items-center justify-between border-t border-amber-100/20 pt-1.5">
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+          {participantShares.map((p) => (
+            <div key={p.name} className="flex items-center gap-1 text-[9px] text-neutral-400 font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+              <span>{p.name} ({p.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Preview text when collapsed */}
+      {!isExpanded && thread.previewText && (
+        <div className="mt-2.5 bg-white/40 border border-neutral-100 rounded-lg p-2 text-[10.5px] text-neutral-400 italic line-clamp-1">
+          "{thread.previewText}"
+        </div>
+      )}
+
+      {/* Expanded messages */}
+      {isExpanded && (
+        <div className="mt-3 border-l-2 border-amber-300/60 ml-1.5 pl-3.5 py-1.5 flex flex-col gap-2.5">
+          {messages.map((m, idx) => {
+            const mine = chat.me !== null && m.sender === chat.me;
+            const prev = messages[idx - 1];
+            const next = messages[idx + 1];
+            const groupedWithPrev = !!(
+              prev &&
+              !prev.system &&
+              !m.system &&
+              prev.sender === m.sender &&
+              m.ts - prev.ts < 5 * 60 * 1000
+            );
+            const groupedWithNext = !!(
+              next &&
+              !next.system &&
+              !m.system &&
+              next.sender === m.sender &&
+              next.ts - m.ts < 5 * 60 * 1000
+            );
+            return (
+              <MessageBubble
+                key={m.id}
+                message={m}
+                mine={mine}
+                showAvatar={!groupedWithNext}
+                showSenderName={!groupedWithPrev && chat.participants.length > 2}
+                groupedWithPrev={groupedWithPrev}
+                groupedWithNext={groupedWithNext}
+                theme={chat.theme}
+                reactions={chat.reactions[m.id] ?? []}
+                highlighted={highlightId === m.id}
+                onEdit={(text) => editMessage(chat.id, m.id, text)}
+                onDelete={() => deleteMessage(chat.id, m.id)}
+                onReact={(emoji) => toggleReaction(chat.id, m.id, emoji, sendAs)}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

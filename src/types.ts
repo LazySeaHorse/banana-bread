@@ -112,6 +112,7 @@ export interface ActiveThread {
   participantCounts: Record<string, number>;
   distinctiveWords: string[];
   firstMessageId: number;
+  messageIds: number[];
   previewText: string;
 }
 

@@ -42,6 +42,12 @@ test.describe("Banana Bread Chat App tests", () => {
     // Verify the message bubble specifically (avoid matching the sidebar preview to prevent strict mode violation)
     await expect(page.locator('div.whitespace-pre-wrap:has-text("Hello this is a test message from playwright!")')).toBeVisible();
 
+    // Test Thread View toggle
+    await page.locator("button[title='Switch to condensed thread view']").click();
+    await expect(page.locator("button[title='Switch to standard view']")).toBeVisible();
+    await page.locator("button[title='Switch to standard view']").click();
+    await expect(page.locator("button[title='Switch to condensed thread view']")).toBeVisible();
+
     // 4. Test Search panel
     await page.locator("button:has(svg.lucide-search)").click();
     const searchInput = page.locator("input[placeholder='Search in conversation']");

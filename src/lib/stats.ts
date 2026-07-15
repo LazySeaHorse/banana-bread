@@ -729,6 +729,7 @@ export function computeStats(chat: ChatData): ChatStats {
         participantCounts,
         distinctiveWords,
         firstMessageId: tMsgs[0].id,
+        messageIds: tMsgs.map((m) => m.id),
         previewText,
       });
     }
