@@ -765,3 +765,157 @@ export function computeStats(chat: ChatData): ChatStats {
     activeThreads,
   };
 }
+
+export function computeActiveThreads(chat: ChatData): ActiveThread[] {
+  const messages = chat.messages;
+  
+  // 1. Build word counts and document frequencies for TF-IDF
+  const wordCounts = new Map<string, number>();
+  const participantWordCounts = new Map<string, Map<string, number>>();
+  const participantWordsTotal = new Map<string, number>();
+  const documentFrequency = new Map<string, number>();
+  
+  const participantNameWords = new Set<string>();
+  for (const p of chat.participants) {
+    const parts = p.toLowerCase().split(/[^a-z]+/);
+    for (const part of parts) {
+      if (part.length > 1) {
+        participantNameWords.add(part);
+      }
+    }
+  }
+
+  for (const m of messages) {
+    if (m.system || m.isMedia || !m.text) continue;
+    const sender = m.sender ?? "Unknown";
+    
+    const cleanedText = m.text.toLowerCase();
+    const tokens = cleanedText.split(/[^a-z0-9áéíóúñü']+/);
+    for (const w of tokens) {
+      const cleanW = w.replace(/^'+|'+$/g, "");
+      if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
+        wordCounts.set(cleanW, (wordCounts.get(cleanW) ?? 0) + 1);
+
+        const pWords = participantWordCounts.get(sender) ?? new Map<string, number>();
+        pWords.set(cleanW, (pWords.get(cleanW) ?? 0) + 1);
+        participantWordCounts.set(sender, pWords);
+        participantWordsTotal.set(sender, (participantWordsTotal.get(sender) ?? 0) + 1);
+      }
+    }
+  }
+
+  const activeParticipantsCount = chat.participants.length || 1;
+  for (const pWords of participantWordCounts.values()) {
+    for (const w of pWords.keys()) {
+      documentFrequency.set(w, (documentFrequency.get(w) ?? 0) + 1);
+    }
+  }
+
+  // 2. Detect raw threads
+  const MAX_THREAD_GAP_MS = 15 * 60 * 1000;
+  let currentThreadMsgs: RawMessage[] = [];
+  const threadsRaw: { messages: RawMessage[] }[] = [];
+
+  for (const m of messages) {
+    if (m.system || m.deleted) continue;
+    if (currentThreadMsgs.length === 0) {
+      currentThreadMsgs.push(m);
+    } else {
+      const prev = currentThreadMsgs[currentThreadMsgs.length - 1];
+      if (m.ts - prev.ts <= MAX_THREAD_GAP_MS) {
+        currentThreadMsgs.push(m);
+      } else {
+        if (currentThreadMsgs.length >= 5) {
+          threadsRaw.push({ messages: currentThreadMsgs });
+        }
+        currentThreadMsgs = [m];
+      }
+    }
+  }
+  if (currentThreadMsgs.length >= 5) {
+    threadsRaw.push({ messages: currentThreadMsgs });
+  }
+
+  // Filter threads dynamically:
+  const threadSizes = threadsRaw.map((t) => t.messages.length);
+  const sortedSizes = [...threadSizes].sort((a, b) => a - b);
+  const percentileIndex = Math.floor(sortedSizes.length * 0.80);
+  const dynamicSizeThreshold = sortedSizes.length > 0 
+    ? Math.max(15, sortedSizes[percentileIndex]) 
+    : 15;
+
+  const activeThreads: any[] = [];
+  let threadIdCounter = 1;
+  for (const t of threadsRaw) {
+    const tMsgs = t.messages;
+    const startTs = tMsgs[0].ts;
+    const endTs = tMsgs[tMsgs.length - 1].ts;
+    const durationMinutes = Math.max(1, (endTs - startTs) / 60000);
+    const messageCount = tMsgs.length;
+    const participantsInThread = new Set(tMsgs.map((m) => m.sender).filter(Boolean));
+    
+    if (messageCount >= dynamicSizeThreshold && durationMinutes >= 5 && participantsInThread.size >= 2) {
+      const velocity = messageCount / durationMinutes;
+      
+      const participantCounts: Record<string, number> = {};
+      for (const m of tMsgs) {
+        const sender = m.sender ?? "Unknown";
+        participantCounts[sender] = (participantCounts[sender] ?? 0) + 1;
+      }
+
+      // Keyword extraction: TF-IDF relative to this session
+      const threadWordCounts = new Map<string, number>();
+      let threadTotalWords = 0;
+      for (const m of tMsgs) {
+        if (m.system || m.isMedia || !m.text) continue;
+        const tokens = m.text.toLowerCase().split(/[^a-z0-9áéíóúñü']+/);
+        for (const w of tokens) {
+          const cleanW = w.replace(/^'+|'+$/g, "");
+          if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
+            threadWordCounts.set(cleanW, (threadWordCounts.get(cleanW) ?? 0) + 1);
+            threadTotalWords++;
+          }
+        }
+      }
+
+      const tfIdfScores: { word: string; score: number }[] = [];
+      if (threadTotalWords > 0) {
+        for (const [w, count] of threadWordCounts.entries()) {
+          const tf = count / threadTotalWords;
+          const df = documentFrequency.get(w) ?? 1;
+          const idf = Math.log(1 + activeParticipantsCount / df);
+          const globalWordFreq = wordCounts.get(w) ?? 1;
+          const specificityBoost = count / globalWordFreq;
+          tfIdfScores.push({ word: w, score: tf * idf * (1 + specificityBoost) });
+        }
+      }
+
+      const distinctiveWords = tfIdfScores
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map((x) => x.word);
+
+      const firstTextMsg = tMsgs.find((m) => m.text && !m.system && !m.isMedia);
+      const previewText = firstTextMsg 
+        ? (firstTextMsg.text.replace(/\n+/g, " ").slice(0, 100) + (firstTextMsg.text.length > 100 ? "..." : ""))
+        : "Media / System messages";
+
+      activeThreads.push({
+        id: `thread-${threadIdCounter++}-${startTs}`,
+        startTs,
+        endTs,
+        messageCount,
+        durationMinutes: Math.round(durationMinutes),
+        velocity: Number(velocity.toFixed(1)),
+        participantCounts,
+        distinctiveWords,
+        firstMessageId: tMsgs[0].id,
+        messageIds: tMsgs.map((m) => m.id),
+        previewText,
+      });
+    }
+  }
+
+  return activeThreads;
+}
+

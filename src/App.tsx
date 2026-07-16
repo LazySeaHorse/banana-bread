@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader2, X, MessageCircle } from "lucide-react";
 import { useChatStore } from "@/store/useChatStore";
 import { ChatListSidebar } from "@/components/ChatListSidebar";
@@ -27,6 +27,11 @@ export default function App() {
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingRightPanel, setIsResizingRightPanel] = useState(false);
 
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const sidebarWidthRef = useRef(360);
+  const rightPanelWidthRef = useRef(360);
+
   const startResizeSidebar = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizingSidebar(true);
@@ -41,17 +46,29 @@ export default function App() {
     const handleMouseMove = (e: MouseEvent) => {
       if (isResizingSidebar) {
         const newWidth = Math.max(240, Math.min(500, e.clientX));
-        setSidebarWidth(newWidth);
+        sidebarWidthRef.current = newWidth;
+        if (sidebarRef.current) {
+          sidebarRef.current.style.width = `${newWidth}px`;
+        }
       }
       if (isResizingRightPanel) {
         const newWidth = Math.max(280, Math.min(600, window.innerWidth - e.clientX));
-        setRightPanelWidth(newWidth);
+        rightPanelWidthRef.current = newWidth;
+        if (rightPanelRef.current) {
+          rightPanelRef.current.style.width = `${newWidth}px`;
+        }
       }
     };
 
     const handleMouseUp = () => {
-      setIsResizingSidebar(false);
-      setIsResizingRightPanel(false);
+      if (isResizingSidebar) {
+        setSidebarWidth(sidebarWidthRef.current);
+        setIsResizingSidebar(false);
+      }
+      if (isResizingRightPanel) {
+        setRightPanelWidth(rightPanelWidthRef.current);
+        setIsResizingRightPanel(false);
+      }
     };
 
     if (isResizingSidebar || isResizingRightPanel) {
@@ -94,6 +111,7 @@ export default function App() {
       <div className="flex h-full w-full overflow-hidden bg-white">
         {/* sidebar: always visible on desktop, only when no chat open on mobile */}
         <div
+          ref={sidebarRef}
           className={cn(
             "h-full shrink-0 md:block",
             activeChat ? "hidden md:block" : "w-full md:w-[360px]"
@@ -163,6 +181,7 @@ export default function App() {
         {/* third panel: About panel inline on desktop (lg breakpoint) */}
         {aboutOpen && activeChat && (
           <div
+            ref={rightPanelRef}
             className="hidden h-full shrink-0 lg:block"
             style={{ width: `${rightPanelWidth}px` }}
           >

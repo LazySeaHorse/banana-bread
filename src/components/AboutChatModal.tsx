@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useId } from "react";
+import { useMemo, useState, useEffect, useId, useDeferredValue } from "react";
 import {
   X,
   Check,
@@ -233,7 +233,8 @@ export function AboutChatModal({
   const setTheme = useChatStore((s) => s.setTheme);
   const setAIPersonas = useChatStore((s) => s.setAIPersonas);
   const removeChatEntirely = useChatStore((s) => s.removeChatEntirely);
-  const stats = useMemo(() => computeStats(chat), [chat]);
+  const deferredChat = useDeferredValue(chat);
+  const stats = useMemo(() => computeStats(deferredChat), [deferredChat]);
 
   const participantColors = useMemo(() => {
     const names = chat.participants;
@@ -274,9 +275,9 @@ export function AboutChatModal({
   const sortedParticipants = useMemo(() => {
     const activeNames = stats.participants.map((p) => p.name);
     const activeSet = new Set(activeNames);
-    const inactiveNames = chat.participants.filter((p) => !activeSet.has(p)).sort();
+    const inactiveNames = deferredChat.participants.filter((p) => !activeSet.has(p)).sort();
     return [...activeNames, ...inactiveNames];
-  }, [chat.participants, stats.participants]);
+  }, [deferredChat.participants, stats.participants]);
 
   const handleToggleAnalyticsParticipant = (name: string) => {
     setSelectedAnalyticsParticipants((prev) => {

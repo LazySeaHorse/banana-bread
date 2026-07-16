@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { Settings, Upload, MessageCircleHeart } from "lucide-react";
 import type { ChatIndexEntry } from "@/types";
 import { Avatar } from "@/components/Avatar";
@@ -19,7 +19,9 @@ export function ChatListSidebar({
   onOpenSettings: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const sorted = [...chats].sort((a, b) => b.updatedAt - a.updatedAt);
+  const sorted = useMemo(() => {
+    return [...chats].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, [chats]);
 
   return (
     <div className="flex h-full flex-col bg-white">

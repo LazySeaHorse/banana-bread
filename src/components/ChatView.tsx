@@ -23,7 +23,7 @@ import { SearchPanel } from "@/components/SearchPanel";
 import { formatDay, formatFullDate, formatTime } from "@/lib/date";
 import { useChatStore } from "@/store/useChatStore";
 import { useAIReply } from "@/hooks/useAIReply";
-import { computeStats } from "@/lib/stats";
+import { computeActiveThreads } from "@/lib/stats";
 import { cn } from "@/utils/cn";
 
 type FeedItem =
@@ -50,6 +50,11 @@ type FeedItem =
     };
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+const VirtuosoComponents = {
+  Header: () => <div className="h-3" />,
+  Footer: () => <div className="h-3" />,
+};
 
 export function ChatView({
   chat,
@@ -83,17 +88,24 @@ export function ChatView({
   const [threadedView, setThreadedView] = useState(false);
 
   const threadInfo = useMemo(() => {
-    const stats = computeStats(chat);
+    if (!threadedView) {
+      return {
+        activeThreads: [],
+        msgIdToThread: new Map<number, ActiveThread>(),
+        threadIdMap: new Map<string, ActiveThread>(),
+      };
+    }
+    const activeThreads = computeActiveThreads(chat);
     const msgIdToThread = new Map<number, ActiveThread>();
     const threadIdMap = new Map<string, ActiveThread>();
-    for (const t of stats.activeThreads) {
+    for (const t of activeThreads) {
       threadIdMap.set(t.id, t);
       for (const mId of t.messageIds) {
         msgIdToThread.set(mId, t);
       }
     }
-    return { activeThreads: stats.activeThreads, msgIdToThread, threadIdMap };
-  }, [chat]);
+    return { activeThreads, msgIdToThread, threadIdMap };
+  }, [chat, threadedView]);
 
   const feedItems = useMemo<FeedItem[]>(() => {
     if (!threadedView) {
@@ -328,10 +340,7 @@ export function ChatView({
           initialTopMostItemIndex={feedItems.length - 1}
           followOutput="smooth"
           className="h-full"
-          components={{
-            Header: () => <div className="h-3" />,
-            Footer: () => <div className="h-3" />,
-          }}
+          components={VirtuosoComponents}
           itemContent={(_, item) => {
             if (item.type === "separator") {
               return (
