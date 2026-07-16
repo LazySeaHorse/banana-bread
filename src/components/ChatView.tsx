@@ -12,13 +12,15 @@ import {
   AlertCircle,
   X,
   GitBranch,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import type { ChatData, RawMessage, ActiveThread } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { MessageBubble } from "@/components/MessageBubble";
 import { MessageInput } from "@/components/MessageInput";
 import { SearchPanel } from "@/components/SearchPanel";
-import { formatDay } from "@/lib/date";
+import { formatDay, formatFullDate, formatTime } from "@/lib/date";
 import { useChatStore } from "@/store/useChatStore";
 import { useAIReply } from "@/hooks/useAIReply";
 import { computeStats } from "@/lib/stats";
@@ -42,9 +44,9 @@ type FeedItem =
       messages: RawMessage[];
     }
   | {
-      type: "non-thread-message";
+      type: "non-thread-group";
       key: string;
-      message: RawMessage;
+      messages: RawMessage[];
     };
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -173,24 +175,28 @@ export function ChatView({
             });
           }
         } else {
-          // Non-thread message
-          if (!Number.isNaN(m.ts) && m.ts) {
-            const dayKey = new Date(m.ts).toDateString();
-            if (dayKey !== lastDay) {
-              items.push({
-                type: "separator",
-                key: `sep-${m.ts}-${i}`,
-                label: formatDay(m.ts),
-              });
-              lastDay = dayKey;
+          // Non-thread message (consecutive grouping)
+          const lastItem = items[items.length - 1];
+          if (lastItem && lastItem.type === "non-thread-group") {
+            lastItem.messages.push(m);
+          } else {
+            if (!Number.isNaN(m.ts) && m.ts) {
+              const dayKey = new Date(m.ts).toDateString();
+              if (dayKey !== lastDay) {
+                items.push({
+                  type: "separator",
+                  key: `sep-${m.ts}-${i}`,
+                  label: formatDay(m.ts),
+                });
+                lastDay = dayKey;
+              }
             }
+            items.push({
+              type: "non-thread-group",
+              key: `non-thread-group-${m.id}`,
+              messages: [m],
+            });
           }
-
-          items.push({
-            type: "non-thread-message",
-            key: `non-thread-${m.id}`,
-            message: m,
-          });
         }
       }
       return items;
@@ -202,8 +208,10 @@ export function ChatView({
     feedItems.forEach((item, idx) => {
       if (item.type === "message") {
         map.set(item.message.id, idx);
-      } else if (item.type === "non-thread-message") {
-        map.set(item.message.id, idx);
+      } else if (item.type === "non-thread-group") {
+        for (const msg of item.messages) {
+          map.set(msg.id, idx);
+        }
       } else if (item.type === "thread") {
         for (const mId of item.thread.messageIds) {
           map.set(mId, idx);
@@ -345,22 +353,13 @@ export function ChatView({
                 />
               );
             }
-            if (item.type === "non-thread-message") {
-              const m = item.message;
-              const mine = chat.me !== null && m.sender === chat.me;
+            if (item.type === "non-thread-group") {
               return (
-                <div className="px-4 py-1 flex">
-                  <div className={cn(
-                    "rounded-2xl border border-neutral-200 bg-neutral-50/40 p-2 px-3 text-xs opacity-50 shadow-xs max-w-[75%]",
-                    mine ? "ml-auto bg-neutral-100/30 border-neutral-200/50" : "mr-auto"
-                  )}>
-                    <div className="text-[9px] font-semibold text-neutral-400 mb-0.5 flex justify-between gap-4">
-                      <span>{m.sender || "System"}</span>
-                      <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    </div>
-                    <div className="text-neutral-500 break-words leading-relaxed">{m.text}</div>
-                  </div>
-                </div>
+                <NonThreadGroup
+                  messages={item.messages}
+                  chat={chat}
+                  highlightId={highlightId}
+                />
               );
             }
             const m = item.message;
@@ -471,13 +470,18 @@ function ThreadContainer({
     return colors;
   }, [chat.participants]);
 
+  const totalMsgs = thread.messageCount;
   const participantShares = Object.entries(thread.participantCounts)
     .map(([name, count]) => ({
       name,
       count,
+      percentage: (count / totalMsgs) * 100,
       color: participantColors[name] ?? "#a3a3a3",
     }))
     .sort((a, b) => b.count - a.count);
+
+  const dateStr = formatFullDate(thread.startTs);
+  const timeRange = `${formatTime(thread.startTs)} – ${formatTime(thread.endTs)}`;
 
   useEffect(() => {
     if (highlightId !== null && messages.some((m) => m.id === highlightId)) {
@@ -486,65 +490,98 @@ function ThreadContainer({
   }, [highlightId, messages]);
 
   return (
-    <div className="mx-4 my-3 rounded-2xl border border-amber-100 bg-amber-50/5 p-3.5 shadow-xs transition-all">
-      {/* Thread Header Card */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          {/* Header row: badge and title */}
-          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 uppercase tracking-wide">
-              Active Debate
-            </span>
-            <div className="flex flex-wrap gap-1">
-              {thread.distinctiveWords.slice(0, 3).map((word) => (
-                <span key={word} className="text-[10px] font-bold text-amber-600">
-                  #{word}
-                </span>
-              ))}
-            </div>
-          </div>
-          
-          {/* Stats & Metadata */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-neutral-400 font-medium">
-            <span>{thread.messageCount} messages</span>
-            <span className="text-neutral-300">•</span>
-            <span>{thread.durationMinutes} min</span>
-            <span className="text-neutral-300">•</span>
-            <span className="text-amber-600 font-semibold">{thread.velocity} msg/min</span>
-          </div>
+    <div className="mx-4 my-3 rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4 select-none hover:bg-neutral-50 transition-all shadow-xs">
+      {/* Header: Date, times and Toggle */}
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-bold text-neutral-600">
+          <span className="text-neutral-500">{dateStr}</span>
+          <span className="text-neutral-300">•</span>
+          <span className="text-neutral-500">{timeRange}</span>
         </div>
-
-        {/* Action Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="shrink-0 flex items-center gap-1 rounded-lg bg-neutral-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-neutral-800 transition-all cursor-pointer shadow-xs"
+          className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all cursor-pointer shadow-sm ring-1 ring-neutral-200"
         >
           <span>{isExpanded ? "Collapse" : "Expand"}</span>
+          {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
         </button>
       </div>
 
-      {/* Legend / Participant Icons */}
-      <div className="mt-2 flex items-center justify-between border-t border-amber-100/20 pt-1.5">
-        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+      {/* Stats badges */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        <span className="inline-flex items-center rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/60">
+          {thread.messageCount} messages
+        </span>
+        <span className="inline-flex items-center rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/60">
+          {thread.durationMinutes} min
+        </span>
+        <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10">
+          {thread.velocity} msg/min
+        </span>
+      </div>
+
+      {/* Multi-colored participation share bar */}
+      <div className="mb-3">
+        <div className="h-1.5 w-full flex overflow-hidden rounded-full bg-neutral-200/50">
           {participantShares.map((p) => (
-            <div key={p.name} className="flex items-center gap-1 text-[9px] text-neutral-400 font-semibold">
-              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-              <span>{p.name} ({p.count})</span>
+            <div
+              key={p.name}
+              style={{
+                width: `${p.percentage}%`,
+                backgroundColor: p.color,
+              }}
+              className="h-full transition-all duration-300"
+              title={`${p.name}: ${p.count} messages (${Math.round(p.percentage)}%)`}
+            />
+          ))}
+        </div>
+        {/* Labels/Legend */}
+        <div className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-1">
+          {participantShares.slice(0, 4).map((p) => (
+            <div key={p.name} className="flex items-center gap-1 text-[9.5px] text-neutral-500 font-semibold">
+              <span
+                className="h-1.5 w-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: p.color }}
+              />
+              <span className="truncate max-w-[70px] text-neutral-700">{p.name}</span>
+              <span className="text-neutral-400 font-normal">({Math.round(p.percentage)}%)</span>
             </div>
           ))}
+          {participantShares.length > 4 && (
+            <span className="text-[9.5px] text-neutral-400 font-semibold">
+              +{participantShares.length - 4} more
+            </span>
+          )}
         </div>
       </div>
 
       {/* Preview text when collapsed */}
       {!isExpanded && thread.previewText && (
-        <div className="mt-2.5 bg-white/40 border border-neutral-100 rounded-lg p-2 text-[10.5px] text-neutral-400 italic line-clamp-1">
+        <p className="mt-3 text-[11px] italic text-neutral-400 border-l border-neutral-200 pl-2 leading-relaxed">
           "{thread.previewText}"
+        </p>
+      )}
+
+      {/* Distinctive keywords / topics tags */}
+      {thread.distinctiveWords && thread.distinctiveWords.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-400 mr-0.5">
+            Topics:
+          </span>
+          {thread.distinctiveWords.map((word) => (
+            <span
+              key={word}
+              className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[9.5px] font-medium text-neutral-500 ring-1 ring-neutral-200/50"
+            >
+              #{word}
+            </span>
+          ))}
         </div>
       )}
 
       {/* Expanded messages */}
       {isExpanded && (
-        <div className="mt-3 border-l-2 border-amber-300/60 ml-1.5 pl-3.5 py-1.5 flex flex-col gap-2.5">
+        <div className="mt-4 border-l-2 border-amber-300 ml-1.5 pl-4 py-1.5 flex flex-col gap-2.5 bg-amber-50/[0.02] rounded-r-xl">
           {messages.map((m, idx) => {
             const mine = chat.me !== null && m.sender === chat.me;
             const prev = messages[idx - 1];
@@ -583,6 +620,71 @@ function ThreadContainer({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function NonThreadGroup({
+  messages,
+  chat,
+  highlightId,
+}: {
+  messages: RawMessage[];
+  chat: ChatData;
+  highlightId: number | null;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (highlightId !== null && messages.some((m) => m.id === highlightId)) {
+      setIsExpanded(true);
+    }
+  }, [highlightId, messages]);
+
+  if (messages.length === 0) return null;
+
+  if (!isExpanded) {
+    return (
+      <div className="px-4 py-1.5 flex justify-center">
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="flex items-center gap-1.5 rounded-xl border border-neutral-200/60 bg-neutral-50 px-3 py-1.5 text-[11px] font-semibold text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition-all cursor-pointer shadow-2xs"
+        >
+          <span>Show {messages.length} background message{messages.length === 1 ? "" : "s"}</span>
+          <ChevronDown size={12} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 my-1.5">
+      <div className="px-4 flex justify-center mb-1">
+        <button
+          onClick={() => setIsExpanded(false)}
+          className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-100 px-3 py-1 text-[10px] font-semibold text-neutral-500 hover:bg-neutral-200 transition-all cursor-pointer shadow-2xs"
+        >
+          <span>Hide background messages</span>
+          <ChevronUp size={10} />
+        </button>
+      </div>
+      {messages.map((m) => {
+        const mine = chat.me !== null && m.sender === chat.me;
+        return (
+          <div key={m.id} className="px-4 py-0.5 flex">
+            <div className={cn(
+              "rounded-2xl border border-neutral-200/50 bg-neutral-50/40 p-2 px-3 text-xs opacity-50 shadow-2xs max-w-[75%]",
+              mine ? "ml-auto bg-neutral-100/30 border-neutral-200/50" : "mr-auto"
+            )}>
+              <div className="text-[9px] font-semibold text-neutral-400 mb-0.5 flex justify-between gap-4">
+                <span>{m.sender || "System"}</span>
+                <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              </div>
+              <div className="text-neutral-500 break-words leading-relaxed">{m.text}</div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
