@@ -24,3 +24,9 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
+
+/* Disable browser scroll anchoring on Virtuoso scroller to prevent layout jumping */
+[data-virtuoso-scroller="true"] {
+  overflow-anchor: none !important;
+}
+

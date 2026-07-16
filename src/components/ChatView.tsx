@@ -499,7 +499,8 @@ function ThreadContainer({
   }, [highlightId, messages]);
 
   return (
-    <div className="mx-4 my-3 rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4 select-none hover:bg-neutral-50 transition-all shadow-xs">
+    <div className="px-4 py-1.5">
+      <div className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4 select-none hover:bg-neutral-50 transition-all shadow-xs">
       {/* Header: Date, times and Toggle */}
       <div className="flex items-center justify-between gap-2 mb-2.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-bold text-neutral-600">
@@ -629,6 +630,7 @@ function ThreadContainer({
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -667,7 +669,8 @@ function NonThreadGroup({
   }
 
   return (
-    <div className="flex flex-col gap-1.5 my-1.5">
+    <div className="py-1.5">
+      <div className="flex flex-col gap-1.5">
       <div className="px-4 flex justify-center mb-1">
         <button
           onClick={() => setIsExpanded(false)}
@@ -694,6 +697,7 @@ function NonThreadGroup({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
