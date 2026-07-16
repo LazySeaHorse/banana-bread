@@ -152,7 +152,7 @@ export function computeStats(chat: ChatData): ChatStats {
 
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
-    const parts = p.toLowerCase().split(/[^a-z]+/);
+    const parts = p.toLowerCase().split(/[^\p{L}]+/u);
     for (const part of parts) {
       if (part.length > 1) {
         participantNameWords.add(part);
@@ -187,8 +187,8 @@ export function computeStats(chat: ChatData): ChatStats {
       // Word frequencies (excluding stop words)
       if (m.text) {
         const cleanedText = m.text.toLowerCase();
-        // Split by non-alphanumeric chars (including support for common Spanish accented characters)
-        const tokens = cleanedText.split(/[^a-z0-9áéíóúñü']+/);
+        // Split by non-alphanumeric chars with Unicode Property Escapes
+        const tokens = cleanedText.split(/[^\p{L}\p{N}']/gu);
         for (const w of tokens) {
           const cleanW = w.replace(/^'+|'+$/g, "");
           if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
@@ -205,7 +205,7 @@ export function computeStats(chat: ChatData): ChatStats {
       // Spell check for English
       if (m.text) {
         const cleanedText = m.text.toLowerCase();
-        const tokens = cleanedText.split(/[^a-z']+/);
+        const tokens = cleanedText.split(/[^\p{L}']/gu);
         for (const w of tokens) {
           const cleanW = w.replace(/^'+|'+$/g, "");
           if (cleanW.length > 1 && !CHAT_SLANG.has(cleanW) && !participantNameWords.has(cleanW)) {
@@ -312,7 +312,7 @@ export function computeStats(chat: ChatData): ChatStats {
 
       // ALL CAPS detection
       if (m.text) {
-        const tokens = m.text.split(/[^a-zA-Z]+/);
+        const tokens = m.text.split(/[^\p{L}]+/gu);
         let allCapsCount = 0;
         let wordCount = 0;
         for (const token of tokens) {
@@ -332,7 +332,7 @@ export function computeStats(chat: ChatData): ChatStats {
       // Slang detection
       if (m.text) {
         const cleanedText = m.text.toLowerCase();
-        const tokens = cleanedText.split(/[^a-z']+/);
+        const tokens = cleanedText.split(/[^\p{L}']/gu);
         let slangCount = 0;
         let totalTokenCount = 0;
         for (const w of tokens) {
@@ -687,7 +687,7 @@ export function computeStats(chat: ChatData): ChatStats {
       let threadTotalWords = 0;
       for (const m of tMsgs) {
         if (m.system || m.isMedia || !m.text) continue;
-        const tokens = m.text.toLowerCase().split(/[^a-z0-9áéíóúñü']+/);
+        const tokens = m.text.toLowerCase().split(/[^\p{L}\p{N}']/gu);
         for (const w of tokens) {
           const cleanW = w.replace(/^'+|'+$/g, "");
           if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
@@ -777,7 +777,7 @@ export function computeActiveThreads(chat: ChatData): ActiveThread[] {
   
   const participantNameWords = new Set<string>();
   for (const p of chat.participants) {
-    const parts = p.toLowerCase().split(/[^a-z]+/);
+    const parts = p.toLowerCase().split(/[^\p{L}]+/u);
     for (const part of parts) {
       if (part.length > 1) {
         participantNameWords.add(part);
@@ -790,7 +790,7 @@ export function computeActiveThreads(chat: ChatData): ActiveThread[] {
     const sender = m.sender ?? "Unknown";
     
     const cleanedText = m.text.toLowerCase();
-    const tokens = cleanedText.split(/[^a-z0-9áéíóúñü']+/);
+    const tokens = cleanedText.split(/[^\p{L}\p{N}']/gu);
     for (const w of tokens) {
       const cleanW = w.replace(/^'+|'+$/g, "");
       if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
@@ -868,7 +868,7 @@ export function computeActiveThreads(chat: ChatData): ActiveThread[] {
       let threadTotalWords = 0;
       for (const m of tMsgs) {
         if (m.system || m.isMedia || !m.text) continue;
-        const tokens = m.text.toLowerCase().split(/[^a-z0-9áéíóúñü']+/);
+        const tokens = m.text.toLowerCase().split(/[^\p{L}\p{N}']/gu);
         for (const w of tokens) {
           const cleanW = w.replace(/^'+|'+$/g, "");
           if (cleanW.length >= 3 && !STOP_WORDS.has(cleanW) && !/^\d+$/.test(cleanW)) {
