@@ -341,6 +341,7 @@ export function ChatView({
           followOutput="smooth"
           className="h-full"
           components={VirtuosoComponents}
+          increaseViewportBy={800}
           itemContent={(_, item) => {
             if (item.type === "separator") {
               return (
