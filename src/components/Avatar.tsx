@@ -1,5 +1,6 @@
 import { colorForName, initialsForName } from "@/lib/colors";
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
+import { Avatar as UIAvatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function Avatar({
   name,
@@ -14,20 +15,26 @@ export function Avatar({
 }) {
   const color = colorForName(name || "?");
   return (
-    <div
+    <UIAvatar
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none",
+        "shrink-0 select-none",
         ring && "ring-2 ring-white",
         className
       )}
       style={{
         width: size,
         height: size,
-        fontSize: size * 0.38,
-        background: `linear-gradient(135deg, ${color}, ${color}cc)`,
       }}
     >
-      {initialsForName(name || "?")}
-    </div>
+      <AvatarFallback
+        className="font-semibold text-white"
+        style={{
+          fontSize: size * 0.38,
+          background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+        }}
+      >
+        {initialsForName(name || "?")}
+      </AvatarFallback>
+    </UIAvatar>
   );
 }

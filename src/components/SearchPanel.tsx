@@ -3,6 +3,10 @@ import { Search, X, Regex as RegexIcon, Loader2, ChevronUp, ChevronDown } from "
 import type { RawMessage } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { formatFullDate } from "@/lib/date";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 export interface SearchResult {
   messageId: number;
@@ -116,13 +120,18 @@ export function SearchPanel({
   };
 
   return (
-    <div className="absolute inset-x-0 top-0 z-30 flex max-h-full flex-col overflow-hidden rounded-b-2xl bg-white shadow-lg">
+    <div className="absolute inset-x-0 top-0 z-30 flex max-h-full flex-col overflow-hidden rounded-b-2xl bg-white shadow-xl border-b border-neutral-200">
       <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2.5">
-        <button onClick={onClose} className="p-1 text-neutral-500 hover:text-neutral-800">
+        <Button
+          variant="ghost"
+          size="iconSm"
+          onClick={onClose}
+          className="rounded-full text-neutral-500 hover:text-neutral-800"
+        >
           <X size={20} />
-        </button>
-        <div className="flex flex-1 items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5">
-          <Search size={16} className="text-neutral-400" />
+        </Button>
+        <div className="flex flex-1 items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/20">
+          <Search size={16} className="text-neutral-400 shrink-0" />
           <input
             autoFocus
             value={query}
@@ -139,47 +148,54 @@ export function SearchPanel({
           />
           {loading && <Loader2 size={14} className="animate-spin text-neutral-400" />}
         </div>
-        <button
+        <Button
+          variant={useRegex ? "default" : "secondary"}
+          size="iconSm"
           onClick={() => setUseRegex((r) => !r)}
           title="Toggle regex search"
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-            useRegex ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-500"
-          }`}
+          className={cn(
+            "h-8 w-8 shrink-0 rounded-full",
+            useRegex ? "bg-neutral-900 text-white hover:bg-neutral-800" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+          )}
         >
           <RegexIcon size={15} />
-        </button>
+        </Button>
       </div>
 
       {results.length > 0 && (
-        <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5">
+        <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5 bg-neutral-50/50">
           <button
             onClick={() => setResultsOpen((o) => !o)}
-            className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+            className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800 cursor-pointer"
           >
             {activeIndex + 1} of {results.length} occurrence{results.length === 1 ? "" : "s"}{" "}
             {resultsOpen ? "▲" : "▼"}
           </button>
           <div className="flex items-center gap-1">
-            <button
+            <Button
+              variant="ghost"
+              size="iconSm"
               onClick={() => goTo(activeIndex - 1)}
-              className="rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100"
+              className="h-7 w-7 rounded-full text-neutral-500 hover:bg-neutral-100"
               title="Previous occurrence"
             >
               <ChevronUp size={16} />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="iconSm"
               onClick={() => goTo(activeIndex + 1)}
-              className="rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100"
+              className="h-7 w-7 rounded-full text-neutral-500 hover:bg-neutral-100"
               title="Next occurrence"
             >
               <ChevronDown size={16} />
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {resultsOpen && (
-        <div className="flex-1 overflow-y-auto">
+        <ScrollArea className="flex-1 max-h-[60vh]">
           {error && <div className="p-4 text-sm text-red-500">{error}</div>}
           {!error && query.trim() && !loading && results.length === 0 && (
             <div className="p-6 text-center text-sm text-neutral-400">No results</div>
@@ -194,9 +210,10 @@ export function SearchPanel({
               <li key={`${r.messageId}-${i}`}>
                 <button
                   onClick={() => goTo(i)}
-                  className={`flex w-full items-start gap-2.5 border-b border-neutral-50 px-3 py-2.5 text-left hover:bg-neutral-50 ${
-                    i === activeIndex ? "bg-neutral-50" : ""
-                  }`}
+                  className={cn(
+                    "flex w-full items-start gap-2.5 border-b border-neutral-50 px-3 py-2.5 text-left transition-colors hover:bg-neutral-50 cursor-pointer",
+                    i === activeIndex && "bg-neutral-50"
+                  )}
                 >
                   <Avatar name={r.sender} size={32} />
                   <div className="min-w-0 flex-1">
@@ -216,7 +233,7 @@ export function SearchPanel({
           {results.length >= 500 && (
             <div className="p-3 text-center text-xs text-neutral-400">Showing first 500 matches</div>
           )}
-        </div>
+        </ScrollArea>
       )}
     </div>
   );

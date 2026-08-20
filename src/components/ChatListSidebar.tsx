@@ -3,7 +3,10 @@ import { Settings, Upload, MessageCircleHeart } from "lucide-react";
 import type { ChatIndexEntry } from "@/types";
 import { Avatar } from "@/components/Avatar";
 import { formatListTimestamp } from "@/lib/date";
-import { cn } from "@/utils/cn";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 export function ChatListSidebar({
   chats,
@@ -28,20 +31,24 @@ export function ChatListSidebar({
       <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3.5">
         <h1 className="text-xl font-bold text-neutral-900">Chats</h1>
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => fileRef.current?.click()}
-            className="rounded-full p-2 text-neutral-700 hover:bg-neutral-100"
+            className="rounded-full text-neutral-700 hover:bg-neutral-100"
             title="Import chat export (.txt)"
           >
             <Upload size={19} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onOpenSettings}
-            className="rounded-full p-2 text-neutral-700 hover:bg-neutral-100"
+            className="rounded-full text-neutral-700 hover:bg-neutral-100"
             title="Settings"
           >
             <Settings size={19} />
-          </button>
+          </Button>
         </div>
         <input
           ref={fileRef}
@@ -56,20 +63,20 @@ export function ChatListSidebar({
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <ScrollArea className="min-h-0 flex-1">
         {sorted.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="flex h-[80vh] flex-col items-center justify-center gap-3 px-6 text-center">
             <MessageCircleHeart size={40} className="text-neutral-300" />
             <p className="text-sm text-neutral-400">
               Import a WhatsApp exported chat (.txt) to see it rendered here,
               Instagram DM style.
             </p>
-            <button
+            <Button
               onClick={() => fileRef.current?.click()}
-              className="rounded-full bg-gradient-to-r from-[#FCD34D] to-[#D97706] px-4 py-2 text-sm font-medium text-white shadow"
+              className="rounded-full bg-gradient-to-r from-[#FCD34D] to-[#D97706] px-5 py-2 text-sm font-medium text-white shadow hover:opacity-95"
             >
               Import chat
-            </button>
+            </Button>
           </div>
         )}
         {sorted.map((c) => (
@@ -77,7 +84,7 @@ export function ChatListSidebar({
             key={c.id}
             onClick={() => onOpenChat(c.id)}
             className={cn(
-              "flex w-full items-center gap-3 border-b border-neutral-50 px-4 py-3 text-left hover:bg-neutral-50",
+              "flex w-full items-center gap-3 border-b border-neutral-50 px-4 py-3 text-left transition-colors hover:bg-neutral-50 cursor-pointer",
               activeChatId === c.id && "bg-neutral-50",
             )}
           >
@@ -96,15 +103,15 @@ export function ChatListSidebar({
                   {c.lastMessagePreview || "No messages"}
                 </p>
                 {!c.me && (
-                  <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">
+                  <Badge variant="amber" className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px]">
                     set "you"
-                  </span>
+                  </Badge>
                 )}
               </div>
             </div>
           </button>
         ))}
-      </div>
+      </ScrollArea>
     </div>
   );
 }

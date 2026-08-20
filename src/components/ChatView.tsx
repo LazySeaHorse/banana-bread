@@ -20,11 +20,13 @@ import { Avatar } from "@/components/Avatar";
 import { MessageBubble } from "@/components/MessageBubble";
 import { MessageInput } from "@/components/MessageInput";
 import { SearchPanel } from "@/components/SearchPanel";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatDay, formatFullDate, formatTime } from "@/lib/date";
 import { useChatStore } from "@/store/useChatStore";
 import { useAIReply } from "@/hooks/useAIReply";
 import { computeActiveThreads } from "@/lib/stats";
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 
 type FeedItem =
   | { type: "separator"; key: string; label: string }
@@ -261,11 +263,16 @@ export function ChatView({
     <div className="relative flex h-full min-h-0 flex-col bg-white">
       {/* header */}
       <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2.5">
-        <button onClick={onBack} className="p-1 text-neutral-700 md:hidden">
+        <Button
+          variant="ghost"
+          size="iconSm"
+          onClick={onBack}
+          className="p-1 text-neutral-700 md:hidden"
+        >
           <ArrowLeft size={22} />
-        </button>
+        </Button>
         <button
-          className="flex min-w-0 flex-1 items-center gap-2.5"
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left cursor-pointer"
           onClick={onOpenAbout}
         >
           <Avatar name={headerName} size={36} />
@@ -293,43 +300,55 @@ export function ChatView({
           </div>
         </button>
         {hasAIPersonas && (
-          <button
+          <Button
+            variant={ai.isAutoPlaying ? "default" : "ghost"}
+            size="iconSm"
             onClick={() => (ai.isAutoPlaying ? ai.stop() : ai.startAutoPlay())}
-            className={`rounded-full p-1.5 ${
+            className={cn(
+              "rounded-full",
               ai.isAutoPlaying
                 ? "bg-neutral-900 text-white"
                 : "text-neutral-700 hover:text-black"
-            }`}
+            )}
             title={
               ai.isAutoPlaying ? "Stop AI auto-play" : "Auto-play AI replies"
             }
           >
             {ai.isAutoPlaying ? <Square size={18} /> : <Play size={18} />}
-          </button>
+          </Button>
         )}
-        <button
+        <Button
+          variant="outline"
+          size="iconSm"
           onClick={() => setThreadedView(!threadedView)}
-          className={`p-1.5 rounded-full transition-all border ${
+          className={cn(
+            "rounded-full transition-all",
             threadedView
               ? "bg-amber-100 border-amber-200 text-amber-800 hover:bg-amber-200"
               : "bg-white border-transparent text-neutral-700 hover:text-black hover:bg-neutral-100"
-          }`}
+          )}
           title={threadedView ? "Switch to standard view" : "Switch to condensed thread view"}
         >
-          <GitBranch size={20} />
-        </button>
-        <button
+          <GitBranch size={18} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="iconSm"
           onClick={() => setSearchOpen(true)}
-          className="p-1.5 text-neutral-700 hover:text-black"
+          className="rounded-full text-neutral-700 hover:text-black"
+          title="Search messages"
         >
-          <Search size={20} />
-        </button>
-        <button
+          <Search size={19} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="iconSm"
           onClick={onOpenAbout}
-          className="p-1.5 text-neutral-700 hover:text-black"
+          className="rounded-full text-neutral-700 hover:text-black"
+          title="Chat info & statistics"
         >
-          <Info size={20} />
-        </button>
+          <Info size={19} />
+        </Button>
       </div>
 
       {/* messages */}
@@ -346,9 +365,9 @@ export function ChatView({
             if (item.type === "separator") {
               return (
                 <div className="flex justify-center py-2">
-                  <span className="rounded-full bg-neutral-100 px-3 py-1 text-[11px] font-medium text-neutral-500">
+                  <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] font-medium text-neutral-500 shadow-none">
                     {item.label}
-                  </span>
+                  </Badge>
                 </div>
               );
             }
@@ -407,12 +426,14 @@ export function ChatView({
         <div className="flex items-start gap-2 border-t border-red-100 bg-red-50 px-3 py-2 text-[12.5px] text-red-700">
           <AlertCircle size={15} className="mt-0.5 shrink-0" />
           <span className="flex-1">{ai.error}</span>
-          <button
+          <Button
+            variant="ghost"
+            size="iconSm"
             onClick={ai.clearError}
-            className="shrink-0 text-red-400 hover:text-red-700"
+            className="h-5 w-5 shrink-0 text-red-400 hover:text-red-700"
           >
             <X size={14} />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -426,10 +447,12 @@ export function ChatView({
                 ? "Auto-play running…"
                 : `AI-controlled: ${aiPersonas.join(", ")}`}
           </span>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => void ai.generateFor()}
             disabled={ai.isGenerating || ai.isAutoPlaying}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11.5px] font-medium text-neutral-700 shadow-sm ring-1 ring-neutral-200 hover:bg-neutral-100 disabled:opacity-50"
+            className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11.5px] font-medium text-neutral-700 shadow-xs ring-1 ring-neutral-200 hover:bg-neutral-100"
             title="Generate the next AI reply"
           >
             {ai.isGenerating ? (
@@ -438,7 +461,7 @@ export function ChatView({
               <Sparkles size={12} />
             )}
             Reply
-          </button>
+          </Button>
         </div>
       )}
 
@@ -509,26 +532,28 @@ function ThreadContainer({
           <span className="text-neutral-300">•</span>
           <span className="text-neutral-500">{timeRange}</span>
         </div>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all cursor-pointer shadow-sm ring-1 ring-neutral-200"
+          className="flex h-6 items-center gap-1 rounded-md bg-white px-2 py-0.5 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all shadow-xs ring-1 ring-neutral-200"
         >
           <span>{isExpanded ? "Collapse" : "Expand"}</span>
           {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-        </button>
+        </Button>
       </div>
 
       {/* Stats badges */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="inline-flex items-center rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/60">
+        <Badge variant="outline" className="rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 shadow-none">
           {thread.messageCount} messages
-        </span>
-        <span className="inline-flex items-center rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/60">
+        </Badge>
+        <Badge variant="outline" className="rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 shadow-none">
           {thread.durationMinutes} min
-        </span>
-        <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10">
+        </Badge>
+        <Badge variant="amber" className="rounded px-1.5 py-0.5 text-[10px] font-semibold">
           {thread.velocity} msg/min
-        </span>
+        </Badge>
       </div>
 
       {/* Multi-colored participation share bar */}
@@ -580,12 +605,13 @@ function ThreadContainer({
             Topics:
           </span>
           {thread.distinctiveWords.map((word) => (
-            <span
+            <Badge
               key={word}
-              className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[9.5px] font-medium text-neutral-500 ring-1 ring-neutral-200/50"
+              variant="outline"
+              className="rounded-full bg-white px-2 py-0.5 text-[9.5px] font-medium text-neutral-500 shadow-none"
             >
               #{word}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -658,13 +684,15 @@ function NonThreadGroup({
   if (!isExpanded) {
     return (
       <div className="px-4 py-1.5 flex justify-center">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => setIsExpanded(true)}
-          className="flex items-center gap-1.5 rounded-xl border border-neutral-200/60 bg-neutral-50 px-3 py-1.5 text-[11px] font-semibold text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition-all cursor-pointer shadow-2xs"
+          className="flex h-7 items-center gap-1.5 rounded-xl border border-neutral-200/60 bg-neutral-50 px-3 py-1.5 text-[11px] font-semibold text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 shadow-2xs"
         >
           <span>Show {messages.length} background message{messages.length === 1 ? "" : "s"}</span>
           <ChevronDown size={12} />
-        </button>
+        </Button>
       </div>
     );
   }
@@ -673,13 +701,15 @@ function NonThreadGroup({
     <div className="py-1.5">
       <div className="flex flex-col gap-1.5">
       <div className="px-4 flex justify-center mb-1">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => setIsExpanded(false)}
-          className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-100 px-3 py-1 text-[10px] font-semibold text-neutral-500 hover:bg-neutral-200 transition-all cursor-pointer shadow-2xs"
+          className="flex h-6 items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-100 px-3 py-1 text-[10px] font-semibold text-neutral-500 hover:bg-neutral-200 shadow-2xs"
         >
           <span>Hide background messages</span>
           <ChevronUp size={10} />
-        </button>
+        </Button>
       </div>
       {messages.map((m) => {
         const mine = chat.me !== null && m.sender === chat.me;

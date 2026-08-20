@@ -19,7 +19,11 @@ import {
   MAX_MAX_CONTEXT_TOKENS,
   type AIProviderId,
 } from "@/lib/ai/settings";
-import { cn } from "@/utils/cn";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 const PROVIDER_IDS: AIProviderId[] = ["gemini", "openai", "cohere", "groq"];
 
@@ -56,17 +60,21 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30 md:items-center md:justify-center"
+      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/40 backdrop-blur-xs md:items-center md:justify-center"
     >
-      <div className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl md:h-auto md:max-h-[85vh] md:rounded-2xl">
-        <div className="sticky top-0 flex items-center gap-3 border-b border-neutral-100 bg-white px-4 py-3">
-          <button
-            onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-900"
-          >
-            <X size={20} />
-          </button>
-          <h2 className="text-[15px] font-semibold">Settings</h2>
+      <div className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl md:h-auto md:max-h-[85vh] md:rounded-2xl border border-neutral-100">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="iconSm"
+              onClick={onClose}
+              className="rounded-full text-neutral-500 hover:text-neutral-900"
+            >
+              <X size={18} />
+            </Button>
+            <h2 className="text-[15px] font-semibold text-neutral-900">Settings</h2>
+          </div>
         </div>
 
         <section className="border-b border-neutral-100 px-4 py-4">
@@ -90,33 +98,34 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             participants are AI-controlled from that chat's info panel.
           </p>
 
-          <div className="mb-3 flex gap-1 rounded-xl bg-neutral-100 p-1">
-            {PROVIDER_IDS.map((p) => (
-              <button
-                key={p}
-                onClick={() => {
-                  setActiveTab(p);
-                  setShowKey(false);
-                  setCustomModel(false);
-                }}
-                className={cn(
-                  "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
-                  activeTab === p
-                    ? "bg-white text-neutral-900 shadow-sm"
-                    : "text-neutral-500 hover:text-neutral-800",
-                )}
-              >
-                {PROVIDER_LABELS[p]}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => {
+              setActiveTab(val as AIProviderId);
+              setShowKey(false);
+              setCustomModel(false);
+            }}
+            className="mb-3 w-full"
+          >
+            <TabsList className="grid w-full grid-cols-4 h-9 p-1">
+              {PROVIDER_IDS.map((p) => (
+                <TabsTrigger
+                  key={p}
+                  value={p}
+                  className="text-xs font-medium"
+                >
+                  {PROVIDER_LABELS[p]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
-          <div className="flex flex-col gap-3 rounded-xl bg-neutral-50 p-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-600">
+          <div className="flex flex-col gap-3 rounded-2xl bg-neutral-50 p-3.5 border border-neutral-100">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-neutral-700">
                 API key
               </span>
-              <div className="flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-2 ring-1 ring-neutral-200 focus-within:ring-neutral-400">
+              <div className="flex items-center gap-1.5 rounded-xl bg-white px-2.5 py-1.5 ring-1 ring-neutral-200 focus-within:ring-2 focus-within:ring-primary/20">
                 <KeyRound size={14} className="shrink-0 text-neutral-400" />
                 <input
                   type={showKey ? "text" : "password"}
@@ -127,34 +136,36 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   placeholder={`Your ${PROVIDER_LABELS[activeTab]} API key`}
                   className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="iconSm"
                   onClick={() => setShowKey((v) => !v)}
-                  className="shrink-0 text-neutral-400 hover:text-neutral-700"
+                  className="h-6 w-6 shrink-0 rounded-md text-neutral-400 hover:text-neutral-700"
                   title={showKey ? "Hide key" : "Show key"}
                 >
                   {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
+                </Button>
               </div>
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-600">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-neutral-700">
                 Model
               </span>
               {customModel || !isKnownModel ? (
-                <input
+                <Input
                   type="text"
                   value={activeConfig.model}
                   onChange={(e) => setProviderModel(activeTab, e.target.value)}
                   placeholder="Model name"
-                  className="rounded-lg bg-white px-2.5 py-2 text-sm outline-none ring-1 ring-neutral-200 focus:ring-neutral-400"
+                  className="bg-white text-sm"
                 />
               ) : (
                 <select
                   value={activeConfig.model}
                   onChange={(e) => setProviderModel(activeTab, e.target.value)}
-                  className="rounded-lg bg-white px-2.5 py-2 text-sm outline-none ring-1 ring-neutral-200 focus:ring-neutral-400"
+                  className="h-9 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm shadow-sm outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {modelOptions.map((m) => (
                     <option key={m} value={m}>
@@ -166,7 +177,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={() => setCustomModel((v) => !v)}
-                className="self-start text-[11px] text-neutral-400 hover:text-neutral-700"
+                className="self-start text-[11px] text-neutral-500 hover:text-neutral-800 cursor-pointer"
               >
                 {customModel || !isKnownModel
                   ? "Choose from list instead"
@@ -174,51 +185,47 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               </button>
             </label>
 
-            <label className="flex items-center gap-2 pt-1">
+            <label className="flex items-center gap-2 pt-1 cursor-pointer">
               <input
                 type="radio"
                 name="active-provider"
                 checked={aiSettings.activeProvider === activeTab}
                 onChange={() => setActiveProvider(activeTab)}
-                className="h-3.5 w-3.5"
-              />
-              <span className="text-xs text-neutral-600">
+                className="h-4 w-4 accent-amber-500 cursor-pointer"
+              >
+              </input>
+              <span className="text-xs text-neutral-700">
                 Use <b>{PROVIDER_LABELS[activeTab]}</b> for AI personas
               </span>
             </label>
           </div>
 
-          <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-neutral-50 p-3">
+          <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-neutral-50 p-3.5 border border-neutral-100">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-neutral-600">
+              <span className="text-xs font-medium text-neutral-700">
                 Max context tokens per AI turn
               </span>
-              <span className="text-xs font-semibold text-neutral-800">
+              <span className="text-xs font-semibold text-neutral-900">
                 {aiSettings.maxContextTokens.toLocaleString()}
               </span>
             </div>
-            <input
-              type="range"
+            <Slider
               min={MIN_MAX_CONTEXT_TOKENS}
               max={MAX_MAX_CONTEXT_TOKENS}
               step={256}
-              value={aiSettings.maxContextTokens}
-              onChange={(e) => setMaxContextTokens(Number(e.target.value))}
-              className="w-full accent-neutral-800"
+              value={[aiSettings.maxContextTokens]}
+              onValueChange={([val]) => setMaxContextTokens(val)}
+              className="w-full py-1"
             />
             <p className="text-[11px] text-neutral-400">
               Controls roughly how much recent chat history is sent to the model
-              on each AI-generated reply. Higher values give the AI more context
-              (better continuity) but cost more per request and may hit provider
-              limits.
+              on each AI-generated reply.
             </p>
           </div>
 
           <p className="mt-3 text-[11px] text-neutral-400">
             Keys are stored only in this browser's local storage and sent
-            directly to the provider's API — never to any other server. Anyone
-            with access to this browser/device could read them, so avoid using
-            high-privilege keys.
+            directly to the provider's API.
           </p>
         </section>
 
@@ -227,36 +234,39 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             Danger zone
           </h3>
           {!confirming ? (
-            <button
+            <Button
+              variant="destructive"
               onClick={() => setConfirming(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 text-red-600 shadow-none hover:bg-red-100 hover:text-red-700"
             >
               <Trash2 size={16} /> Clear all local storage
-            </button>
+            </Button>
           ) : (
-            <div className="rounded-xl bg-red-50 p-3">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-3.5">
               <p className="mb-3 flex items-start gap-2 text-sm text-red-700">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 This deletes every imported chat, edit, and reaction from this
                 browser. This can't be undone.
               </p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setConfirming(false)}
-                  className="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-600 ring-1 ring-neutral-200"
+                  className="flex-1 bg-white"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="destructive"
                   onClick={() => {
                     clearAllStorage();
                     setConfirming(false);
                     onClose();
                   }}
-                  className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  className="flex-1"
                 >
                   Yes, clear everything
-                </button>
+                </Button>
               </div>
             </div>
           )}

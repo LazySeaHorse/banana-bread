@@ -3,7 +3,9 @@ import type { BubbleTheme, RawMessage, Reaction } from "@/types";
 import { MediaPlaceholder } from "@/components/MediaPlaceholder";
 import { Avatar } from "@/components/Avatar";
 import { formatTime } from "@/lib/date";
-import { cn } from "@/utils/cn";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { Pencil, SmilePlus, Trash2, Check, X } from "lucide-react";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
@@ -54,7 +56,6 @@ export function MessageBubble({
   const radiusSmall = "4px";
   let borderRadius: string;
   if (mine) {
-    // top-left, top-right, bottom-right, bottom-left
     borderRadius = `${radiusBig} ${groupedWithPrev ? radiusSmall : radiusBig} ${
       groupedWithNext ? radiusSmall : radiusBig
     } ${radiusBig}`;
@@ -76,8 +77,6 @@ export function MessageBubble({
         borderRadius,
       };
 
-  // Virtuoso measures the root item's content box, not its margins. Keep
-  // vertical message spacing inside that box so its size estimates stay exact.
   const topSpacing = groupedWithPrev ? "pt-0.5" : "pt-2.5";
 
   if (message.deleted) {
@@ -111,18 +110,20 @@ export function MessageBubble({
 
         <div className="relative">
           {editing ? (
-            <div className="w-64 max-w-[70vw] rounded-2xl border border-neutral-300 bg-white p-2 shadow-sm">
-              <textarea
+            <div className="w-64 max-w-[70vw] rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-md">
+              <Textarea
                 autoFocus
-                className="w-full resize-none rounded-lg border border-neutral-200 p-2 text-sm outline-none focus:border-neutral-400"
+                className="min-h-[70px] w-full resize-none rounded-xl p-2 text-sm outline-none"
                 rows={3}
                 value={draft}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => setDraft(e.target.value)}
               />
-              <div className="mt-1.5 flex justify-end gap-2">
-                <button
-                  className="flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-200"
+              <div className="mt-2 flex justify-end gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 rounded-lg text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditing(false);
@@ -130,9 +131,10 @@ export function MessageBubble({
                   }}
                 >
                   <X size={12} /> Cancel
-                </button>
-                <button
-                  className="flex items-center gap-1 rounded-full bg-neutral-900 px-2.5 py-1 text-xs text-white hover:bg-black"
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 rounded-lg bg-neutral-900 text-xs text-white hover:bg-neutral-800"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit(draft);
@@ -140,7 +142,7 @@ export function MessageBubble({
                   }}
                 >
                   <Check size={12} /> Save
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -173,15 +175,19 @@ export function MessageBubble({
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <button
-                className="rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+              <Button
+                variant="ghost"
+                size="iconSm"
+                className="h-7 w-7 rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
                 onClick={() => setPicking((p) => !p)}
                 title="React"
               >
                 <SmilePlus size={15} />
-              </button>
-              <button
-                className="rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+              </Button>
+              <Button
+                variant="ghost"
+                size="iconSm"
+                className="h-7 w-7 rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
                 onClick={() => {
                   setEditing(true);
                   setPicking(false);
@@ -189,14 +195,16 @@ export function MessageBubble({
                 title="Edit"
               >
                 <Pencil size={15} />
-              </button>
-              <button
-                className="rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-red-500"
+              </Button>
+              <Button
+                variant="ghost"
+                size="iconSm"
+                className="h-7 w-7 rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-red-500"
                 onClick={onDelete}
                 title="Delete"
               >
                 <Trash2 size={15} />
-              </button>
+              </Button>
             </div>
           )}
 
@@ -211,7 +219,7 @@ export function MessageBubble({
               {QUICK_EMOJIS.map((e) => (
                 <button
                   key={e}
-                  className="rounded-full p-1 text-lg leading-none transition-transform hover:scale-125"
+                  className="rounded-full p-1 text-lg leading-none transition-transform hover:scale-125 cursor-pointer"
                   onClick={() => {
                     onReact(e);
                     setPicking(false);

@@ -1,7 +1,14 @@
 import { useRef, useState } from "react";
 import { ChevronDown, Image as ImageIcon, Send, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
-import { cn } from "@/utils/cn";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export function MessageInput({
   participants,
@@ -17,7 +24,6 @@ export function MessageInput({
   gradient: string;
 }) {
   const [value, setValue] = useState("");
-  const [pickerOpen, setPickerOpen] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const submit = () => {
@@ -31,41 +37,48 @@ export function MessageInput({
   return (
     <div className="border-t border-neutral-200 bg-white">
       <div className="relative flex items-center gap-2 border-b border-neutral-100 px-3 py-1.5">
-        <button
-          onClick={() => setPickerOpen((p) => !p)}
-          className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          <Avatar name={sendAs} size={20} />
-          <span>
-            Send as <b>{sendAs}</b>
-          </span>
-          <ChevronDown size={13} />
-        </button>
-        {pickerOpen && (
-          <div className="absolute bottom-full left-2 z-20 mb-1 w-48 overflow-hidden rounded-xl bg-white py-1 shadow-lg ring-1 ring-black/5">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 rounded-full py-1 pl-1.5 pr-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+            >
+              <Avatar name={sendAs} size={20} />
+              <span>
+                Send as <b>{sendAs}</b>
+              </span>
+              <ChevronDown size={13} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48 p-1">
             {participants.map((p) => (
-              <button
+              <DropdownMenuItem
                 key={p}
                 className={cn(
-                  "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-neutral-50",
-                  p === sendAs && "bg-neutral-50 font-semibold"
+                  "flex items-center gap-2 px-2.5 py-1.5 text-sm cursor-pointer",
+                  p === sendAs && "bg-neutral-100 font-semibold"
                 )}
-                onClick={() => {
-                  onChangeSendAs(p);
-                  setPickerOpen(false);
-                }}
+                onClick={() => onChangeSendAs(p)}
               >
                 <Avatar name={p} size={22} />
-                {p}
-              </button>
+                <span className="truncate">{p}</span>
+              </DropdownMenuItem>
             ))}
-          </div>
-        )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
       <div className="flex items-end gap-2 px-3 py-2">
-        <button className="mb-1.5 shrink-0 text-neutral-500 hover:text-neutral-700" title="Attach media (decorative)">
-          <ImageIcon size={22} />
-        </button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mb-1.5 h-8 w-8 shrink-0 rounded-full text-neutral-500 hover:text-neutral-700"
+          title="Attach media (decorative)"
+        >
+          <ImageIcon size={20} />
+        </Button>
+
         <div className="flex flex-1 items-end gap-2 rounded-3xl bg-neutral-100 px-3 py-2">
           <textarea
             ref={taRef}
@@ -86,22 +99,34 @@ export function MessageInput({
               }
             }}
           />
-          <button className="shrink-0 text-neutral-500 hover:text-neutral-700" title="Emoji (decorative)">
-            <Smile size={20} />
-          </button>
+          <Button
+            variant="ghost"
+            size="iconSm"
+            className="shrink-0 rounded-full text-neutral-500 hover:text-neutral-700"
+            title="Emoji (decorative)"
+          >
+            <Smile size={18} />
+          </Button>
         </div>
+
         {value.trim() ? (
-          <button
+          <Button
             onClick={submit}
-            className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow"
+            size="icon"
+            className="mb-0.5 h-9 w-9 shrink-0 rounded-full text-white shadow hover:opacity-90"
             style={{ background: gradient }}
           >
             <Send size={16} />
-          </button>
+          </Button>
         ) : (
-          <button className="mb-1.5 shrink-0 text-neutral-500 hover:text-neutral-700" title="Like (decorative)">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mb-1.5 h-8 w-8 shrink-0 rounded-full text-neutral-500 hover:text-neutral-700"
+            title="Like (decorative)"
+          >
             <span className="text-xl leading-none">❤️</span>
-          </button>
+          </Button>
         )}
       </div>
     </div>
