@@ -19,13 +19,14 @@ import {
 } from "recharts";
 import type { ChatStats, BubbleTheme } from "@/types";
 import { getHarmonicPalette } from "@/lib/colors";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface ChartProps {
   stats: ChatStats;
   theme: BubbleTheme;
 }
 
-// Helper to generate colors for participants
 function getParticipantColors(participants: string[], theme: BubbleTheme) {
   const baseColors = getHarmonicPalette(theme, participants.length);
 
@@ -34,17 +35,16 @@ function getParticipantColors(participants: string[], theme: BubbleTheme) {
     const color = baseColors[idx % baseColors.length];
     colorMap[name] = {
       stroke: color,
-      fill: `${color}33`, // 20% opacity
+      fill: `${color}33`,
     };
   });
   return colorMap;
 }
 
-// Custom Tooltip component for recharts
 function CustomChartTooltip({ active, payload, label, suffix = "" }: any) {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-xl border border-neutral-100 bg-white p-3 shadow-lg">
+      <Card className="rounded-xl border border-neutral-100 bg-white p-3 shadow-lg">
         <p className="mb-1 text-[11px] font-semibold text-neutral-500">{label}</p>
         <div className="flex flex-col gap-1">
           {payload.map((entry: any, i: number) => (
@@ -64,7 +64,7 @@ function CustomChartTooltip({ active, payload, label, suffix = "" }: any) {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     );
   }
   return null;
@@ -83,14 +83,14 @@ export function StackedAreaVolumeChart({
 
   if (stats.monthlyTrendSplit.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic">
+      <Card className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic rounded-2xl border border-neutral-100 bg-neutral-50 shadow-none">
         No monthly trends available.
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+    <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 shadow-none">
       <div className="mb-4">
         <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
           Monthly Messages Stacked
@@ -138,7 +138,7 @@ export function StackedAreaVolumeChart({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -162,7 +162,6 @@ export function ParticipantRadarChart({
     const parts = filteredParticipants;
     if (parts.length === 0) return [];
 
-    // Calculate maximums for normalization
     const maxPct = Math.max(...parts.map((p) => p.pct), 1);
     const maxWords = Math.max(...parts.map((p) => p.avgWordsPerMessage), 1);
     const maxEmoji = Math.max(...parts.map((p) => p.emojiRate), 1);
@@ -244,7 +243,6 @@ export function ParticipantRadarChart({
         return entry;
       });
     } else {
-      // writingStyle
       const axes = [
         { subject: "Loudness", key: "loudness" },
         { subject: "Expressiveness", key: "expressiveness" },
@@ -278,11 +276,11 @@ export function ParticipantRadarChart({
   }, [filteredParticipants, activeTab]);
 
   if (stats.participants.length < 2) {
-    return null; // Radar is not useful for single participant chats
+    return null;
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+    <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 shadow-none">
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
@@ -291,39 +289,33 @@ export function ParticipantRadarChart({
           <p className="text-[11px] text-neutral-400">Relative chat traits (normalized 0-100)</p>
         </div>
         <div className="flex flex-wrap gap-1 text-[10px] font-semibold">
-          <button
+          <Button
+            variant={activeTab === "chatStats" ? "default" : "outline"}
+            size="sm"
             onClick={() => setActiveTab("chatStats")}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors cursor-pointer border ${
-              activeTab === "chatStats"
-                ? "bg-neutral-900 border-neutral-900 text-white"
-                : "bg-white border-neutral-200 text-neutral-500 hover:text-neutral-800"
-            }`}
+            className="flex items-center gap-1.5 h-6 rounded-md px-2 text-[10px]"
           >
             <BarChart2 size={11} />
             Stats
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === "bigFive" ? "default" : "outline"}
+            size="sm"
             onClick={() => setActiveTab("bigFive")}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors cursor-pointer border ${
-              activeTab === "bigFive"
-                ? "bg-neutral-900 border-neutral-900 text-white"
-                : "bg-white border-neutral-200 text-neutral-500 hover:text-neutral-800"
-            }`}
+            className="flex items-center gap-1.5 h-6 rounded-md px-2 text-[10px]"
           >
             <Brain size={11} />
             Big Five
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === "writingStyle" ? "default" : "outline"}
+            size="sm"
             onClick={() => setActiveTab("writingStyle")}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors cursor-pointer border ${
-              activeTab === "writingStyle"
-                ? "bg-neutral-900 border-neutral-900 text-white"
-                : "bg-white border-neutral-200 text-neutral-500 hover:text-neutral-800"
-            }`}
+            className="flex items-center gap-1.5 h-6 rounded-md px-2 text-[10px]"
           >
             <PenTool size={11} />
             Habits
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -352,7 +344,7 @@ export function ParticipantRadarChart({
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -369,14 +361,14 @@ export function ReplyTimeTrendChart({
 
   if (stats.replyTimeTrend.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic">
+      <Card className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic rounded-2xl border border-neutral-100 bg-neutral-50 shadow-none">
         No reply speed trends available.
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+    <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 shadow-none">
       <div className="mb-4">
         <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
           Reply Time Over Time
@@ -425,7 +417,7 @@ export function ReplyTimeTrendChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -442,14 +434,14 @@ export function SentimentTrendChart({
 
   if (!stats.monthlySentimentSplit || stats.monthlySentimentSplit.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic">
+      <Card className="flex h-[200px] items-center justify-center text-xs text-neutral-400 italic rounded-2xl border border-neutral-100 bg-neutral-50 shadow-none">
         No sentiment trends available.
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+    <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 shadow-none">
       <div className="mb-4">
         <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
           Sentiment Score Over Time
@@ -497,6 +489,6 @@ export function SentimentTrendChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 }

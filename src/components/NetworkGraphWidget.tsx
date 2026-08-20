@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import cytoscape from "cytoscape";
-import { SlidersHorizontal, Settings2, RefreshCw } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import type { ChatStats, BubbleTheme } from "@/types";
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 import { getHarmonicPalette } from "@/lib/colors";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 interface NetworkGraphWidgetProps {
   stats: ChatStats;
@@ -13,7 +16,6 @@ interface NetworkGraphWidgetProps {
 export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Generate participant colors based on theme
   const participantColors = useMemo(() => {
     const names = stats.participants.map((p) => p.name);
     const palette = getHarmonicPalette(theme, names.length);
@@ -24,14 +26,12 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
     return map;
   }, [theme, stats.participants]);
   
-  // 1. Interactive States
   const [layoutName, setLayoutName] = useState<"cose" | "concentric">("concentric");
   const [minReplies, setMinReplies] = useState<number>(3);
   const [topN, setTopN] = useState<number>(15);
   const [manuallyIncluded, setManuallyIncluded] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState<boolean>(false);
 
-  // Calculate maximum replies globally to bound the slider
   const maxPossibleWeight = useMemo(() => {
     let max = 3;
     const matrix = stats.replyMatrix ?? {};
@@ -44,14 +44,12 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
     return max;
   }, [stats.replyMatrix]);
 
-  // Adjust minReplies if it exceeds maxPossibleWeight
   useEffect(() => {
     if (minReplies > maxPossibleWeight) {
       setMinReplies(Math.max(1, Math.floor(maxPossibleWeight * 0.1)));
     }
   }, [maxPossibleWeight, minReplies]);
 
-  // 2. Filter nodes based on TopN + Manually Included
   const renderedParticipants = useMemo(() => {
     const core = topN === 999 ? stats.participants : stats.participants.slice(0, topN);
     const set = new Set(core.map((p) => p.name));
@@ -61,30 +59,26 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
 
   const renderedNames = useMemo(() => new Set(renderedParticipants.map((p) => p.name)), [renderedParticipants]);
 
-  // Find participants not included in the core set
   const nonCoreParticipants = useMemo(() => {
     const core = topN === 999 ? stats.participants : stats.participants.slice(0, topN);
     const coreSet = new Set(core.map((p) => p.name));
     return stats.participants.filter((p) => !coreSet.has(p.name));
   }, [stats.participants, topN]);
 
-  // Reset manual inclusions that are now inside the core N
   useEffect(() => {
     const core = topN === 999 ? stats.participants : stats.participants.slice(0, topN);
     const coreSet = new Set(core.map((p) => p.name));
     setManuallyIncluded((prev) => prev.filter((name) => !coreSet.has(name)));
   }, [topN, stats.participants]);
 
-  // 3. Initialize/Update Cytoscape Instance
   useEffect(() => {
     if (!containerRef.current || renderedParticipants.length === 0) return;
 
     const elements: cytoscape.ElementDefinition[] = [];
 
-    // Scale nodes based on relative activity of currently rendered participants
     const maxCount = Math.max(...renderedParticipants.map((p) => p.count), 1);
     renderedParticipants.forEach((p) => {
-      const size = 18 + (p.count / maxCount) * 28; // scale node size 18px to 46px
+      const size = 18 + (p.count / maxCount) * 28;
       elements.push({
         data: {
           id: p.name,
@@ -95,7 +89,6 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
       });
     });
 
-    // Populate edges and find local maximum weight
     const matrix = stats.replyMatrix ?? {};
     let localMaxWeight = 1;
 
@@ -179,12 +172,10 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
       ],
       layout: {
         name: layoutName,
-        // Concentric Layout Parameters
         concentric: (node: any) => node.data("size") || 1,
         levelWidth: () => 1,
         fit: true,
         padding: 30,
-        // COSE Layout Parameters
         idealEdgeLength: () => 90,
         nodeOverlap: 25,
         refresh: 20,
@@ -203,7 +194,7 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
   }, [renderedParticipants, renderedNames, minReplies, layoutName, theme, stats.replyMatrix, participantColors]);
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+    <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 shadow-none">
       {/* Widget Header */}
       <div className="mb-3 flex items-start justify-between">
         <div>
@@ -214,32 +205,32 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
             Drag nodes to explore relationship hubs.
           </p>
         </div>
-        <button
+        <Button
+          variant={showSettings ? "default" : "outline"}
+          size="sm"
           onClick={() => setShowSettings(!showSettings)}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border transition-all duration-150 cursor-pointer",
-            showSettings
-              ? "bg-neutral-900 border-neutral-900 text-white shadow-sm"
-              : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100"
+            "flex items-center gap-1.5 h-7 rounded-lg px-2.5 text-xs font-medium",
+            showSettings && "bg-neutral-900 text-white"
           )}
         >
           <SlidersHorizontal size={13} />
           Settings
-        </button>
+        </Button>
       </div>
 
       {/* Interactive Controls Panel */}
       {showSettings && (
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-neutral-200/50 bg-white p-3.5 shadow-sm animate-fadeIn">
+        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-neutral-200/50 bg-white p-3.5 shadow-sm">
           {/* Column 1: Layout & Core Limits */}
           <div className="flex flex-col gap-3">
-            {/* Layout Toggle */}
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
                 Layout Style
               </span>
               <div className="flex rounded-lg bg-neutral-100 p-0.5">
                 <button
+                  type="button"
                   onClick={() => setLayoutName("concentric")}
                   className={cn(
                     "flex-1 rounded-md py-1 text-center text-xs font-medium transition-all cursor-pointer",
@@ -251,6 +242,7 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
                   Concentric
                 </button>
                 <button
+                  type="button"
                   onClick={() => setLayoutName("cose")}
                   className={cn(
                     "flex-1 rounded-md py-1 text-center text-xs font-medium transition-all cursor-pointer",
@@ -264,7 +256,6 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
               </div>
             </div>
 
-            {/* Top N Limit Selector */}
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
                 Show Top Active
@@ -272,7 +263,7 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
               <select
                 value={topN}
                 onChange={(e) => setTopN(Number(e.target.value))}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 outline-none focus:border-neutral-400 cursor-pointer"
+                className="w-full h-8 rounded-lg border border-input bg-white px-2 py-1 text-xs text-neutral-800 outline-none focus:ring-2 focus:ring-ring cursor-pointer"
               >
                 <option value={5}>Top 5</option>
                 <option value={10}>Top 10</option>
@@ -294,13 +285,12 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
                 &ge; {minReplies} replies
               </span>
             </div>
-            <input
-              type="range"
+            <Slider
               min={1}
               max={maxPossibleWeight}
-              value={minReplies}
-              onChange={(e) => setMinReplies(Number(e.target.value))}
-              className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-neutral-800"
+              value={[minReplies]}
+              onValueChange={([val]) => setMinReplies(val)}
+              className="py-1"
             />
             <p className="text-[10px] text-neutral-400 leading-snug">
               Hides lines representing weak interactions. Scale limits: 1 to {maxPossibleWeight}.
@@ -360,6 +350,6 @@ export function NetworkGraphWidget({ stats, theme }: NetworkGraphWidgetProps) {
           No participants selected to draw.
         </div>
       )}
-    </div>
+    </Card>
   );
 }

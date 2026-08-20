@@ -3,6 +3,9 @@ import { ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
 import type { ActiveThread } from "@/types";
 import { formatFullDate, formatTime } from "@/lib/date";
 import { useChatStore } from "@/store/useChatStore";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export function ActiveThreadsWidget({
   threads,
@@ -23,19 +26,19 @@ export function ActiveThreadsWidget({
 
   if (!threads || threads.length === 0) {
     return (
-      <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-center select-none">
+      <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-center select-none shadow-none">
         <h4 className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1">
           Active Threads
         </h4>
         <p className="text-xs text-neutral-400 italic">
           No active threads detected in this conversation.
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 select-none">
+    <Card className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 select-none shadow-none">
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="flex w-full items-center justify-between text-left cursor-pointer focus:outline-none"
@@ -79,27 +82,29 @@ export function ActiveThreadsWidget({
                     <span className="text-neutral-300">•</span>
                     <span className="text-neutral-500">{timeRange}</span>
                   </div>
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleJump(t.firstMessageId)}
-                    className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all cursor-pointer shadow-sm ring-1 ring-neutral-200"
+                    className="flex h-6 items-center gap-0.5 rounded-md bg-white px-2 py-0.5 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all shadow-xs ring-1 ring-neutral-200"
                     title="Jump to start of this thread in chat"
                   >
                     Jump
                     <ArrowUpRight size={10} />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Stats badges */}
                 <div className="flex flex-wrap gap-1.5 mb-2.5">
-                  <span className="inline-flex items-center rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/60">
+                  <Badge variant="outline" className="rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 shadow-none">
                     {t.messageCount} messages
-                  </span>
-                  <span className="inline-flex items-center rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/60">
+                  </Badge>
+                  <Badge variant="outline" className="rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 shadow-none">
                     {t.durationMinutes} min
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10">
+                  </Badge>
+                  <Badge variant="amber" className="rounded px-1.5 py-0.5 text-[10px] font-semibold">
                     {t.velocity} msg/min
-                  </span>
+                  </Badge>
                 </div>
 
                 {/* Multi-colored participation share bar */}
@@ -118,7 +123,7 @@ export function ActiveThreadsWidget({
                     ))}
                   </div>
                   {/* Labels/Legend */}
-                  <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">
+                  <div className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-1">
                     {participantShares.slice(0, 4).map((p) => (
                       <div key={p.name} className="flex items-center gap-1 text-[9px] text-neutral-500 font-medium">
                         <span
@@ -151,12 +156,13 @@ export function ActiveThreadsWidget({
                       Topics:
                     </span>
                     {t.distinctiveWords.map((word) => (
-                      <span
+                      <Badge
                         key={word}
-                        className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-neutral-500 ring-1 ring-neutral-200/50 hover:bg-neutral-100"
+                        variant="outline"
+                        className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-neutral-500 shadow-none hover:bg-neutral-100"
                       >
                         #{word}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -165,6 +171,6 @@ export function ActiveThreadsWidget({
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

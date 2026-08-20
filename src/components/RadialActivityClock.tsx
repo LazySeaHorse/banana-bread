@@ -1,5 +1,6 @@
 import { useMemo, useState, useId } from "react";
 import type { BubbleTheme } from "@/types";
+import { Card } from "@/components/ui/card";
 
 export function RadialActivityClock({
   hourHistogram,
@@ -22,7 +23,6 @@ export function RadialActivityClock({
     return hourHistogram.reduce((a, b) => a + b, 0);
   }, [hourHistogram]);
 
-  // SVG dimensions
   const size = 220;
   const center = size / 2;
   const maxRadius = 80;
@@ -30,7 +30,6 @@ export function RadialActivityClock({
 
   const points = useMemo(() => {
     return hourHistogram.map((count, h) => {
-      // 12 AM is at the top, which is -90 degrees
       const angleDeg = h * 15 - 90;
       const angleRad = (angleDeg * Math.PI) / 180;
       const length = innerRadius + (count / maxVal) * (maxRadius - innerRadius);
@@ -49,7 +48,6 @@ export function RadialActivityClock({
     });
   }, [hourHistogram, maxVal, center]);
 
-  // Polygon path string connecting all outer points
   const polygonPath = useMemo(() => {
     if (points.length === 0) return "";
     return (
@@ -66,7 +64,7 @@ export function RadialActivityClock({
   const activeSpoke = hoveredHour !== null ? points[hoveredHour] : null;
 
   return (
-    <div className="relative rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+    <Card className="relative rounded-2xl border border-neutral-100 bg-neutral-50 p-4 shadow-none">
       <div className="mb-2">
         <h4 className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
           24-Hour Activity Clock
@@ -143,7 +141,6 @@ export function RadialActivityClock({
             const isHovered = hoveredHour === p.hour;
             return (
               <g key={p.hour}>
-                {/* Visual Spoke Line */}
                 <line
                   x1={p.xInner}
                   y1={p.yInner}
@@ -156,7 +153,6 @@ export function RadialActivityClock({
                   opacity={hoveredHour === null ? 0.9 : isHovered ? 1 : 0.4}
                 />
 
-                {/* Invisible larger hover area spoke */}
                 <line
                   x1={p.xInner}
                   y1={p.yInner}
@@ -248,6 +244,6 @@ export function RadialActivityClock({
         <span>Night (12am-6am)</span>
         <span>Work (9am-5pm)</span>
       </div>
-    </div>
+    </Card>
   );
 }

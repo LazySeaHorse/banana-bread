@@ -22,9 +22,13 @@ import { computeStats } from "@/lib/stats";
 import { formatFullDate, WEEKDAY_LABELS } from "@/lib/date";
 import { BUBBLE_THEMES, getHarmonicPalette } from "@/lib/colors";
 import { useChatStore } from "@/store/useChatStore";
-import { cn } from "@/utils/cn";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-// Import new visualization widgets
+// Import visualization widgets
 import { ActiveThreadsWidget } from "@/components/ActiveThreadsWidget";
 import { CalendarHeatmapWidget } from "@/components/CalendarHeatmapWidget";
 import { RadialActivityClock } from "@/components/RadialActivityClock";
@@ -40,7 +44,7 @@ function Bar({ pct, color }: { pct: number; color?: string }) {
   return (
     <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
       <div
-        className="h-full rounded-full"
+        className="h-full rounded-full transition-all duration-300"
         style={{
           width: `${Math.max(pct, 2)}%`,
           background: color ?? "linear-gradient(90deg,#5B51D8,#E1306C)",
@@ -110,7 +114,7 @@ function MonthlyTrendChart({
   const gradHoverId = `chartBarGradHover-${uniqueId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   return (
-    <div className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100">
+    <Card className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100 shadow-none">
       <div className="mb-2 flex items-baseline justify-between">
         <h4 className="text-xs font-semibold text-neutral-600">Monthly Volume</h4>
         <div className="text-[11px] font-medium text-neutral-500 min-h-[16px]">
@@ -216,7 +220,7 @@ function MonthlyTrendChart({
           </svg>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -367,12 +371,14 @@ export function AboutChatModal({
         {/* Sticky Header with Tabs */}
         <div className="sticky top-0 z-10 flex flex-col border-b border-neutral-100 bg-white px-4">
           <div className="flex items-center gap-3 py-3">
-            <button
+            <Button
+              variant="ghost"
+              size="iconSm"
               onClick={onClose}
-              className="text-neutral-500 hover:text-neutral-900"
+              className="rounded-full text-neutral-500 hover:text-neutral-900"
             >
               <X size={20} />
-            </button>
+            </Button>
             <h2 className="text-[15px] font-semibold text-neutral-800">Chat Info & Statistics</h2>
           </div>
           
@@ -380,7 +386,7 @@ export function AboutChatModal({
             <button
               onClick={() => setActiveTab("overview")}
               className={cn(
-                "flex-1 py-2 text-center text-xs font-semibold border-b-2 transition-all duration-150",
+                "flex-1 py-2 text-center text-xs font-semibold border-b-2 transition-all duration-150 cursor-pointer",
                 activeTab === "overview"
                   ? "border-neutral-900 text-neutral-900"
                   : "border-transparent text-neutral-400 hover:text-neutral-600"
@@ -391,7 +397,7 @@ export function AboutChatModal({
             <button
               onClick={() => setActiveTab("analytics")}
               className={cn(
-                "flex-1 py-2 text-center text-xs font-semibold border-b-2 transition-all duration-150",
+                "flex-1 py-2 text-center text-xs font-semibold border-b-2 transition-all duration-150 cursor-pointer",
                 activeTab === "analytics"
                   ? "border-neutral-900 text-neutral-900"
                   : "border-transparent text-neutral-400 hover:text-neutral-600"
@@ -416,20 +422,22 @@ export function AboutChatModal({
           <>
             {/* Search/filter input */}
             <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-2.5 flex items-center gap-2">
-              <input
+              <Input
                 type="text"
                 placeholder="Search/filter participants..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-800 outline-none focus:border-neutral-400 placeholder:text-neutral-400"
+                className="h-8 bg-white text-xs"
               />
               {searchQuery && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="iconSm"
                   onClick={() => setSearchQuery("")}
-                  className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+                  className="rounded-full h-7 w-7 text-neutral-400 hover:text-neutral-600"
                 >
                   <X size={14} />
-                </button>
+                </Button>
               )}
             </div>
             {/* Who am I */}
@@ -441,7 +449,7 @@ export function AboutChatModal({
                 {filteredWhoAreYou.length > 5 && (
                   <button
                     onClick={() => setShowAllWhoAreYou(!showAllWhoAreYou)}
-                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800 cursor-pointer"
                   >
                     {showAllWhoAreYou ? "Show less" : "Show more"}
                   </button>
@@ -453,7 +461,7 @@ export function AboutChatModal({
                     key={p}
                     onClick={() => setMe(chat.id, chat.me === p ? null : p)}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-neutral-50",
+                      "flex items-center gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-neutral-50 transition-colors cursor-pointer",
                       chat.me === p && "bg-neutral-50",
                     )}
                   >
@@ -483,7 +491,7 @@ export function AboutChatModal({
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
                   <button
                     onClick={toggleAll}
-                    className="hover:text-neutral-800 font-medium"
+                    className="hover:text-neutral-800 font-medium cursor-pointer"
                   >
                     {allSelected ? "Select none" : "Select all"}
                   </button>
@@ -492,7 +500,7 @@ export function AboutChatModal({
                       <span className="text-neutral-300">|</span>
                       <button
                         onClick={() => setShowAllAI(!showAllAI)}
-                        className="hover:text-neutral-800"
+                        className="hover:text-neutral-800 cursor-pointer"
                       >
                         {showAllAI ? "Show less" : "Show more"}
                       </button>
@@ -512,7 +520,7 @@ export function AboutChatModal({
                       key={p}
                       onClick={() => togglePersona(p)}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-neutral-50",
+                        "flex items-center gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-neutral-50 transition-colors cursor-pointer",
                         isAI && "bg-neutral-50",
                       )}
                     >
@@ -545,10 +553,10 @@ export function AboutChatModal({
                     key={t.id}
                     onClick={() => setTheme(chat.id, t)}
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full ring-2 ring-offset-2",
+                      "flex h-10 w-10 items-center justify-center rounded-full ring-2 ring-offset-2 transition-all cursor-pointer",
                       chat.theme.id === t.id
-                        ? "ring-neutral-800"
-                        : "ring-transparent",
+                        ? "ring-neutral-800 scale-105"
+                        : "ring-transparent hover:scale-105",
                     )}
                     title={t.label}
                     style={{
@@ -587,7 +595,7 @@ export function AboutChatModal({
                 {filteredMessages.length > 5 && (
                   <button
                     onClick={() => setShowAllMessages(!showAllMessages)}
-                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800 cursor-pointer"
                   >
                     {showAllMessages ? "Show less" : "Show more"}
                   </button>
@@ -625,7 +633,7 @@ export function AboutChatModal({
                 {filteredBreakdown.length > 5 && (
                   <button
                     onClick={() => setShowAllBreakdown(!showAllBreakdown)}
-                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800 cursor-pointer"
                   >
                     {showAllBreakdown ? "Show less" : "Show more"}
                   </button>
@@ -633,9 +641,9 @@ export function AboutChatModal({
               </div>
               <div className="flex flex-col gap-3">
                 {visibleBreakdown.map((p) => (
-                  <div
+                  <Card
                     key={p.name}
-                    className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-3 flex flex-col gap-2"
+                    className="rounded-2xl border border-neutral-100 bg-neutral-50/50 p-3.5 flex flex-col gap-2 shadow-none"
                   >
                     <div className="flex items-center gap-2">
                       <Avatar name={p.name} size={28} />
@@ -715,17 +723,18 @@ export function AboutChatModal({
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {p.distinctiveWords.map((w) => (
-                            <span
+                            <Badge
                               key={w}
-                              className="bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-neutral-200/20"
+                              variant="secondary"
+                              className="px-1.5 py-0.5 text-[10px] font-medium"
                             >
                               {w}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       </div>
                     )}
-                  </div>
+                  </Card>
                 ))}
                 {filteredBreakdown.length === 0 && (
                   <div className="text-xs text-neutral-400 italic p-2">No participants found</div>
@@ -742,7 +751,7 @@ export function AboutChatModal({
                 {filteredTypos.length > 5 && (
                   <button
                     onClick={() => setShowAllTypos(!showAllTypos)}
-                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800 cursor-pointer"
                   >
                     {showAllTypos ? "Show less" : "Show more"}
                   </button>
@@ -765,7 +774,7 @@ export function AboutChatModal({
                       </div>
                       <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-amber-400 to-red-500 rounded-full"
+                          className="h-full bg-gradient-to-r from-amber-400 to-red-500 rounded-full transition-all duration-300"
                           style={{ width: `${barPct}%` }}
                         />
                       </div>
@@ -773,9 +782,9 @@ export function AboutChatModal({
                         <div className="text-[10px] text-neutral-400 flex flex-wrap gap-1 mt-0.5">
                           <span className="italic">Common slips:</span>
                           {p.topTypos.map((t) => (
-                            <span key={t.word} className="bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-600 font-mono font-medium">
+                            <Badge key={t.word} variant="outline" className="px-1.5 py-0.2 text-[10px] font-mono font-medium shadow-none">
                               "{t.word}" ({t.count})
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       )}
@@ -797,7 +806,7 @@ export function AboutChatModal({
                 {filteredStarters.length > 5 && (
                   <button
                     onClick={() => setShowAllStarters(!showAllStarters)}
-                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                    className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800 cursor-pointer"
                   >
                     {showAllStarters ? "Show less" : "Show more"}
                   </button>
@@ -832,7 +841,7 @@ export function AboutChatModal({
                           </div>
                           <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full rounded-full"
+                              className="h-full rounded-full transition-all duration-300"
                               style={{
                                 width: `${pct}%`,
                                 backgroundColor: participantColors[s.name] || chat.theme.meFrom,
@@ -888,13 +897,14 @@ export function AboutChatModal({
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {stats.topEmojis.map((e) => (
-                    <div
+                    <Badge
                       key={e.emoji}
-                      className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-sm"
+                      variant="secondary"
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm shadow-none"
                     >
                       <span>{e.emoji}</span>
-                      <span className="text-xs text-neutral-500">{e.count}</span>
-                    </div>
+                      <span className="text-xs text-neutral-500 font-normal">{e.count}</span>
+                    </Badge>
                   ))}
                 </div>
               </section>
@@ -944,23 +954,24 @@ export function AboutChatModal({
 
             {/* Delete Chat */}
             <section className="px-4 py-4">
-              <button
+              <Button
+                variant="destructive"
                 onClick={() => {
                   removeChatEntirely(chat.id);
                   onClose();
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 text-red-600 shadow-none hover:bg-red-100 hover:text-red-700"
               >
                 <Trash2 size={16} /> Delete this chat
-              </button>
+              </Button>
             </section>
           </>
         ) : (
           /* Deep Analytics Visual Dashboard */
-          <div className="flex flex-col gap-5 p-4 animate-fadeIn">
+          <div className="flex flex-col gap-5 p-4">
             {/* Participant selector */}
             {stats.participants.length > 5 && (
-              <div className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-3">
+              <Card className="rounded-2xl border border-neutral-100 bg-neutral-50/50 p-3.5 shadow-none">
                 <h5 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
                   Visualized Participants (Select up to 5)
                 </h5>
@@ -972,7 +983,7 @@ export function AboutChatModal({
                         key={p.name}
                         onClick={() => handleToggleAnalyticsParticipant(p.name)}
                         className={cn(
-                          "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border transition-all",
+                          "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border transition-all cursor-pointer",
                           isSelected
                             ? "bg-neutral-900 border-neutral-900 text-white"
                             : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"
@@ -984,7 +995,7 @@ export function AboutChatModal({
                     );
                   })}
                 </div>
-              </div>
+              </Card>
             )}
 
             {/* Active Threads Widget */}
@@ -1056,10 +1067,10 @@ export function AboutChatModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30 md:items-center md:justify-center"
+      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/40 backdrop-blur-xs md:items-center md:justify-center"
     >
       <div className={cn(
-        "flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl md:h-[88vh] md:rounded-2xl transition-all duration-300 ease-in-out",
+        "flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl md:h-[88vh] md:rounded-2xl transition-all duration-300 ease-in-out border border-neutral-100",
         activeTab === "analytics" ? "md:max-w-3xl" : "md:max-w-md"
       )}>
         {innerContent}
@@ -1070,12 +1081,12 @@ export function AboutChatModal({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-neutral-50 px-2 py-3">
+    <Card className="rounded-2xl bg-neutral-50 px-2 py-3 border border-neutral-100 shadow-none">
       <div className="text-base font-semibold text-neutral-900">{value}</div>
       <div className="text-[10px] uppercase tracking-wide text-neutral-400">
         {label}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -1088,7 +1099,7 @@ function CustomGradientPicker({
   onChange: (t: ChatData["theme"]) => void;
 }) {
   return (
-    <div className="mt-3 flex items-center gap-3 rounded-xl bg-neutral-50 p-2.5">
+    <Card className="mt-3 flex items-center gap-3 rounded-2xl bg-neutral-50 p-2.5 border border-neutral-100 shadow-none">
       <div className="flex items-center gap-1.5">
         <input
           type="color"
@@ -1124,6 +1135,6 @@ function CustomGradientPicker({
           background: `linear-gradient(135deg, ${theme.meFrom}, ${theme.meTo})`,
         }}
       />
-    </div>
+    </Card>
   );
 }

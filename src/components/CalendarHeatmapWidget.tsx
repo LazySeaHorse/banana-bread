@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import type { BubbleTheme } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface ActivityDay {
   date: string;
@@ -59,20 +61,17 @@ export function CalendarHeatmapWidget({
     // Align start date to the beginning of the week (Sunday = 0)
     const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     const dayOfWeek = startDate.getDay();
-    startDate.setDate(startDate.getDate() - dayOfWeek); // Move back to Sunday
+    startDate.setDate(startDate.getDate() - dayOfWeek);
 
     const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-    // Align end date to the end of the week (Saturday = 6)
     const endDayOfWeek = endDate.getDay();
-    endDate.setDate(endDate.getDate() + (6 - endDayOfWeek)); // Move forward to Saturday
+    endDate.setDate(endDate.getDate() + (6 - endDayOfWeek));
 
-    // Build map of counts for quick lookup
     const countsMap = new Map<string, number>();
     for (const d of filteredData) {
       countsMap.set(d.date, d.count);
     }
 
-    // Generate list of days
     const days: { date: Date; dateStr: string; count: number }[] = [];
     const cur = new Date(startDate.getTime());
     while (cur <= endDate) {
@@ -88,7 +87,6 @@ export function CalendarHeatmapWidget({
       cur.setDate(cur.getDate() + 1);
     }
 
-    // Group into columns (weeks)
     const weeks: { dateStr: string; count: number; date: Date }[][] = [];
     for (let i = 0; i < days.length; i += 7) {
       weeks.push(days.slice(i, i + 7));
@@ -97,7 +95,6 @@ export function CalendarHeatmapWidget({
     return weeks;
   }, [filteredData, selectedYear]);
 
-  // Extract months labels and their column index for the SVG header
   const monthLabels = useMemo(() => {
     const labels: { label: string; colIndex: number }[] = [];
     let prevMonth = -1;
@@ -107,7 +104,6 @@ export function CalendarHeatmapWidget({
         const curMonth = firstDayOfWeek.getMonth();
         if (curMonth !== prevMonth) {
           const label = firstDayOfWeek.toLocaleDateString("en-US", { month: "short" });
-          // Only add if it's not too cramped (at least 2 columns space)
           if (labels.length === 0 || colIdx - labels[labels.length - 1].colIndex > 2) {
             labels.push({ label, colIndex: colIdx });
             prevMonth = curMonth;
@@ -118,12 +114,11 @@ export function CalendarHeatmapWidget({
     return labels;
   }, [gridData]);
 
-  // CSS variables for matching the bubble color theme dynamically
   const themeStyles = useMemo(() => {
     const from = theme.meFrom || "#5B51D8";
     const to = theme.meTo || "#E1306C";
     return {
-      "--color-empty": "#e5e7eb", // gray-200
+      "--color-empty": "#e5e7eb",
       "--color-scale-1": `${from}30`,
       "--color-scale-2": `${from}75`,
       "--color-scale-3": `${from}c8`,
@@ -153,8 +148,8 @@ export function CalendarHeatmapWidget({
   const paddingTop = 16;
 
   return (
-    <div
-      className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100 select-none"
+    <Card
+      className="relative rounded-2xl bg-neutral-50 p-4 border border-neutral-100 select-none shadow-none"
       style={themeStyles}
     >
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -166,28 +161,24 @@ export function CalendarHeatmapWidget({
         </div>
 
         <div className="flex flex-wrap gap-1">
-          <button
+          <Button
+            variant={selectedYear === "last365" ? "default" : "outline"}
+            size="sm"
             onClick={() => setSelectedYear("last365")}
-            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
-              selectedYear === "last365"
-                ? "bg-neutral-900 text-white shadow-sm"
-                : "bg-white text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 border border-neutral-200"
-            }`}
+            className="h-7 rounded-lg px-2.5 text-xs font-medium"
           >
             Last Year
-          </button>
+          </Button>
           {years.map((yr) => (
-            <button
+            <Button
               key={yr}
+              variant={selectedYear === yr ? "default" : "outline"}
+              size="sm"
               onClick={() => setSelectedYear(yr)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
-                selectedYear === yr
-                  ? "bg-neutral-900 text-white shadow-sm"
-                  : "bg-white text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 border border-neutral-200"
-              }`}
+              className="h-7 rounded-lg px-2.5 text-xs font-medium"
             >
               {yr}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -265,6 +256,6 @@ export function CalendarHeatmapWidget({
           <span>More</span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

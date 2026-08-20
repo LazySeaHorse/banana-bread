@@ -5,7 +5,9 @@ import { ChatListSidebar } from "@/components/ChatListSidebar";
 import { ChatView } from "@/components/ChatView";
 import { AboutChatModal } from "@/components/AboutChatModal";
 import { SettingsModal } from "@/components/SettingsModal";
-import { cn } from "@/utils/cn";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function App() {
   const init = useChatStore((s) => s.init);
@@ -103,6 +105,10 @@ export default function App() {
     ensureLoaded(id);
   };
 
+  const progressPercent = importProgress && importProgress.total
+    ? (importProgress.processed / importProgress.total) * 100
+    : 0;
+
   return (
     <div className={cn(
       "h-dvh w-full overflow-hidden bg-white font-[system-ui] text-neutral-900 antialiased",
@@ -154,7 +160,7 @@ export default function App() {
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-50 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#FCD34D] to-[#D97706]">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#FCD34D] to-[#D97706] shadow-sm">
                 <MessageCircle size={34} className="text-white" />
               </div>
               <h2 className="text-lg font-semibold text-neutral-700">
@@ -182,7 +188,7 @@ export default function App() {
         {aboutOpen && activeChat && (
           <div
             ref={rightPanelRef}
-            className="hidden h-full shrink-0 lg:block"
+            className="hidden h-full shrink-0 lg:block border-l border-neutral-100"
             style={{ width: `${rightPanelWidth}px` }}
           >
             <AboutChatModal
@@ -207,19 +213,12 @@ export default function App() {
 
       {importProgress && (
         <div className="fixed bottom-4 left-1/2 z-50 flex w-[92%] max-w-sm -translate-x-1/2 items-center gap-3 rounded-2xl bg-neutral-900 px-4 py-3 text-white shadow-xl">
-          <Loader2 size={18} className="shrink-0 animate-spin" />
+          <Loader2 size={18} className="shrink-0 animate-spin text-amber-400" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">
               Importing {importProgress.fileName}
             </p>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-              <div
-                className="h-full rounded-full bg-white transition-all"
-                style={{
-                  width: `${importProgress.total ? (importProgress.processed / importProgress.total) * 100 : 0}%`,
-                }}
-              />
-            </div>
+            <Progress value={progressPercent} className="mt-1.5 h-1.5 bg-white/20" />
           </div>
         </div>
       )}
@@ -227,9 +226,14 @@ export default function App() {
       {toast && !importProgress && (
         <div className="fixed bottom-4 left-1/2 z-50 flex w-[92%] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-2xl bg-neutral-900 px-4 py-3 text-white shadow-xl">
           <p className="text-sm">{toast}</p>
-          <button onClick={() => setToast(null)}>
+          <Button
+            variant="ghost"
+            size="iconSm"
+            onClick={() => setToast(null)}
+            className="h-6 w-6 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+          >
             <X size={16} />
-          </button>
+          </Button>
         </div>
       )}
     </div>
